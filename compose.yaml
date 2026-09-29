@@ -1,0 +1,90 @@
+name: sensorhub
+
+services:
+  nginx:
+    image: nginx:1.29-alpine
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+    ports:
+      - "${APP_PORT:-80}:80"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./backend:/var/www/html/backend:ro
+    networks:
+      - sensorhub
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    working_dir: /var/www/html/backend
+    environment:
+      APP_NAME: ${APP_NAME:-SensorHub}
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_KEY: ${APP_KEY:-}
+      APP_URL: ${APP_URL:-http://localhost}
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-sensorhub}
+      DB_USERNAME: ${DB_USERNAME:-sensorhub}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      SESSION_DOMAIN: ${SESSION_DOMAIN:-}
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost,127.0.0.1}
+    volumes:
+      - ./backend:/var/www/html/backend
+      - backend_vendor:/var/www/html/backend/vendor
+      - backend_storage:/var/www/html/backend/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - sensorhub
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    working_dir: /app/frontend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost/api/v1}
+      CHOKIDAR_USEPOLLING: ${CHOKIDAR_USEPOLLING:-true}
+    volumes:
+      - ./frontend:/app/frontend
+      - frontend_node_modules:/app/frontend/node_modules
+    networks:
+      - sensorhub
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-sensorhub}
+      MYSQL_USER: ${DB_USERNAME:-sensorhub}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
+    ports:
+      - "${DB_FORWARD_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks:
+      - sensorhub
+
+volumes:
+  backend_vendor:
+  backend_storage:
+  frontend_node_modules:
+  mysql_data:
+
+networks:
+  sensorhub:
+    driver: bridge

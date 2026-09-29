@@ -1,0 +1,16 @@
+.git
+.env
+.env.*
+!.env.example
+
+backend/vendor
+backend/storage/logs
+backend/storage/framework
+backend/.phpunit.cache
+
+frontend/node_modules
+frontend/dist
+
+docker-compose*.yml
+README.md
+docs

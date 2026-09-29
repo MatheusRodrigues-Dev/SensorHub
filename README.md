@@ -33,6 +33,19 @@ The documented services and endpoints are planned and are not implemented yet.
 - [Human-readable API guide](docs/api.md)
 - [OpenAPI 3.1 contract](docs/openapi.yaml)
 - [Implementation roadmap](docs/roadmap.md)
+- [Docker development guide](docs/development.md)
+
+## Phase 1 quick start
+
+```bash
+cp .env.example .env
+docker compose build
+docker compose up -d
+```
+
+Open `http://localhost` after the containers are healthy. The complete
+Docker-based workflow, commands and environment variables are documented in
+the [development guide](docs/development.md).
 
 ## Planned repository layout
 
