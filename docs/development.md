@@ -147,17 +147,40 @@ up -d` and may be checked with `docker compose ps mysql-testing`.
 It starts on ordinary Compose startup as well; a test-only startup profile can
 be considered later if its resource cost becomes inconvenient.
 
-The environment is reviewed around a same-origin Nginx entry point. `APP_URL`
-defaults to `http://localhost`; set it to the actual public origin when
-changing host or port. Nginx sends `/api/*` to PHP-FPM, while the frontend
-remains served by Vite. Laravel's CORS middleware uses its framework defaults;
-configure explicit allowed origins together with session and Sanctum settings
-when cross-origin auth is implemented. Proxy trust should be configured for
-the actual deployment proxy network rather than broadly enabled in local dev.
+The local SPA and API use one Nginx origin, `http://localhost`. Nginx sends
+`/api/*` and `/sanctum/*` to PHP-FPM while serving the React app through Vite.
+Sanctum's stateful API middleware applies Laravel sessions and CSRF protection
+to requests from `SANCTUM_STATEFUL_DOMAINS`. The four `/api/v1/auth/*` routes
+use the `web` session guard; user bearer tokens and device credentials do not
+authenticate them. Policies in `app/Policies` follow ownership through Device.
+Authentication routes require a first-party `Origin` or `Referer` so Sanctum
+can establish the SPA session; requests without one receive JSON `419`.
+
+For a browser client, request `GET /sanctum/csrf-cookie` first with cookies
+enabled. Send `Accept: application/json` and `Content-Type: application/json`
+for auth JSON bodies. For each POST, send the current URL-decoded `XSRF-TOKEN`
+cookie as `X-XSRF-TOKEN`. Login rotates the session and CSRF cookie, so reread
+the cookie before logout. `POST /api/v1/auth/register` creates an account and
+returns `201` without logging in. Login and logout return `204`. The current
+user endpoint returns `id`, `name` and `email` only. A missing CSRF token gives
+`419`; unauthenticated access gives JSON `401`. Login is limited to ten
+attempts per minute per IP and five per normalized email, using Laravel's existing
+cache configuration.
+
+Local HTTP uses `SESSION_SECURE_COOKIE=false`, an HTTP-only host-only
+`sensorhub_session` cookie, `SESSION_SAME_SITE=lax`, and the database session
+driver. `CORS_ALLOWED_ORIGINS` is an explicit allowlist; credentialed CORS is
+enabled for those origins, though ordinary local requests are same-origin.
+If `APP_PORT` or the hostname changes, update `APP_URL`,
+`SANCTUM_STATEFUL_DOMAINS` (including the port), and `CORS_ALLOWED_ORIGINS`
+together. An HTTPS deployment should set `SESSION_SECURE_COOKIE=true` and
+configure its exact origins, session domain, and trusted proxy network. No
+production HTTPS deployment has been validated.
 
 ## Current scope
 
-The Laravel and React skeletons, the versioned API foundation, and the V1
-domain persistence model are implemented. Authentication, domain API routes,
-telemetry and dashboard behavior remain planned.
+The Laravel and React skeletons, versioned API foundation, V1 domain
+persistence, SPA user authentication and ownership policies are implemented.
+Domain CRUD routes, device bearer authentication, telemetry and dashboard
+behavior remain planned.
 Redis, queues, MQTT and real-time services remain planned.

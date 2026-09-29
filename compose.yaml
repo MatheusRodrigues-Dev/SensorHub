@@ -34,6 +34,11 @@ services:
       DB_USERNAME: ${DB_USERNAME:-sensorhub}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       SESSION_DOMAIN: ${SESSION_DOMAIN:-}
+      SESSION_COOKIE: ${SESSION_COOKIE:-sensorhub_session}
+      SESSION_DRIVER: ${SESSION_DRIVER:-database}
+      SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-false}
+      SESSION_HTTP_ONLY: ${SESSION_HTTP_ONLY:-true}
+      SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
       SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost,127.0.0.1}
     volumes:
       - ./backend:/var/www/html/backend

@@ -1,6 +1,6 @@
 # SensorHub V1 API Guide
 
-**Status:** Planned  
+**Status:** User authentication implemented; domain endpoints planned
 **Base path:** `/api/v1`
 
 The authoritative machine-readable contract is [`openapi.yaml`](openapi.yaml).
@@ -10,11 +10,19 @@ The authoritative machine-readable contract is [`openapi.yaml`](openapi.yaml).
 ### User SPA
 
 The React client first calls Laravel's `/sanctum/csrf-cookie` endpoint, then
-submits login credentials. Subsequent state-changing requests use the stateful
-session cookie and CSRF token. User endpoints require the authenticated session.
-The Docker/Nginx setup will use a deliberate first-party host configuration
-(for example `frontend.sensorhub.local` and `api.sensorhub.local`) with
-Sanctum stateful domains, cookie domains and CORS configured together.
+submits login credentials to `/api/v1/auth/login`. Subsequent requests use the
+stateful session cookie; state-changing requests send the URL-decoded
+`XSRF-TOKEN` cookie value in `X-XSRF-TOKEN`. Login regenerates the session, so
+clients must read the current CSRF cookie before each later write, including
+logout. Registration creates an account and returns the user; it does not log
+the user in. Login and logout return `204`; current-user returns only `id`,
+`name` and `email` in `data`.
+
+Locally, the React development server and Laravel API share the Nginx origin
+`http://localhost`. The session cookie is host-only, HTTP-only and SameSite=Lax.
+Sanctum recognizes the configured first-party host. Cross-origin deployment
+would require coordinating the stateful domains, session domain, HTTPS cookies
+and explicit credentialed CORS allowlist; it has not been validated.
 
 ### Device telemetry
 
@@ -50,6 +58,11 @@ operation. It is never returned by read endpoints.
 | `DELETE` | `/devices/{device}/credentials/{credential}` | User | Revoke a token |
 | `GET` | `/sensors/{sensor}/measurements` | User | Query measurements |
 | `POST` | `/devices/{device}/telemetry` | Device | Ingest a batch |
+
+Only the four `/auth/*` routes above are implemented. The other catalogue
+entries remain planned. Login is limited to ten attempts per minute per IP and
+five per normalized email; excess requests receive `429`. Missing or invalid CSRF on a
+state-changing first-party request returns `419`.
 
 ## Telemetry example
 

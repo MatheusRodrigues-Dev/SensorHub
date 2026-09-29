@@ -72,10 +72,10 @@ and response serialization in API Resources.
 - User endpoints use user authentication; telemetry ingestion uses device
   authentication. The two credentials must never be interchangeable.
 
-The local Docker/Nginx topology must configure the frontend and API as a
-deliberate first-party pair (for example `frontend.sensorhub.local` and
-`api.sensorhub.local`). Sanctum stateful domains, cookie settings, CSRF and CORS
-must be configured together rather than treated as independent defaults.
+The local Docker/Nginx topology serves the frontend and API from one
+first-party origin (`http://localhost`). Sanctum stateful domains, cookie
+settings, CSRF and CORS are configured together. A future split across
+subdomains would require an explicit coordinated configuration change.
 
 ## Deliberately deferred capabilities
 

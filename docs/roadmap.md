@@ -61,14 +61,14 @@ command and the agreed application boundaries are established.
 ## Phase 5 — Device management
 
 - Implement device and sensor CRUD.
-- Implement `DeviceCredential` create, rotate and revoke flows.
 - Add Feature tests for valid, invalid, unauthorized and cross-owner requests.
 
 **Done when:** authenticated users can manage only their own devices and
-credentials.
+sensors.
 
 ## Phase 6 — IoT authentication and telemetry
 
+- Implement `DeviceCredential` create, rotate and revoke flows.
 - Implement device bearer-token middleware.
 - Implement atomic batch telemetry ingestion and measurement queries.
 - Validate every `sensor_key` and optional unit assertion before persistence.

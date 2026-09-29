@@ -3,9 +3,10 @@
 SensorHub is a portfolio-oriented IoT telemetry platform built around a
 Laravel REST API, a React dashboard, and a Docker-first development workflow.
 
-Docker infrastructure, the versioned API foundation, and the V1 persistence
-model are implemented. Domain API endpoints, authentication, telemetry ingestion
-and dashboard features remain planned.
+Docker infrastructure, the versioned API foundation, the V1 persistence model,
+and user SPA authentication with ownership policies are implemented. Domain
+CRUD endpoints, device authentication, telemetry ingestion and dashboard
+features remain planned.
 
 ## Planned stack
 
