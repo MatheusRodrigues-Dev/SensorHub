@@ -1,6 +1,6 @@
 # SensorHub Docker Development
 
-**Status:** Phase 2 backend foundation implemented
+**Status:** Phases 0–8 implemented
 
 Docker Compose is the official development environment. The host is expected
 to provide only Git and Docker with Docker Compose.
@@ -59,6 +59,7 @@ docker compose exec backend php artisan test
 docker compose exec frontend npm install
 docker compose exec frontend npm run build
 docker compose exec frontend npm run lint
+docker compose exec frontend npm test
 
 # Open a shell in a service
 docker compose exec backend bash
@@ -210,11 +211,36 @@ together. An HTTPS deployment should set `SESSION_SECURE_COOKIE=true` and
 configure its exact origins, session domain, and trusted proxy network. No
 production HTTPS deployment has been validated.
 
+## React SPA
+
+The frontend lives in `frontend/src`: `features/auth` owns the Context and
+hook, `lib/api.ts` is the single HTTP client, `pages` contains registration
+and login, `layouts` contains public and protected shells, and `components/ui`
+contains the two reusable form controls used today. React Router handles `/`,
+`/login`, `/register`, and `/app`. Authenticated visitors reaching public auth
+routes go to `/app`; unauthenticated visitors reaching `/app` go to `/login`.
+The route tree waits for `GET /api/v1/auth/user` before choosing either path.
+Network failures show a retry state rather than pretending the session ended.
+
+`VITE_API_URL` defaults to `/api/v1` on the same Nginx origin. Override it in
+the root `.env` only when an origin is deliberately configured for credentialed
+CORS and Sanctum stateful requests. Frontend configuration comes from Compose;
+there is no frontend secret. The client sends cookies with every request,
+obtains `/sanctum/csrf-cookie` before registration and login, and reads the
+URL-decoded `XSRF-TOKEN` cookie for the `X-XSRF-TOKEN` header on POSTs.
+Registration returns a user but does not start a session, so the UI logs in
+after a successful registration. No bearer token or auth state is stored in
+browser storage. Session restoration always queries the backend after refresh.
+
+Run `docker compose exec frontend npm test`, `npm run build`, and `npm run lint`
+through the frontend service. Tests use Vitest and React Testing Library. The
+Nginx entry point serves Vite with history fallback, so refreshing any SPA
+route remains supported.
+
 ## Current scope
 
-The Laravel and React skeletons, versioned API foundation, V1 domain
-persistence, SPA user authentication, ownership policies, and Device/Sensor
-CRUD, credential lifecycle, device Bearer authentication, and atomic telemetry
-ingestion, and read-only Measurement history queries are implemented.
-Dashboard behavior remains planned.
+The Laravel API, V1 persistence, SPA user authentication, ownership policies,
+Device/Sensor CRUD, credential lifecycle, device Bearer authentication, atomic
+telemetry ingestion, read-only Measurement history, and React SPA authentication
+are implemented. Device/Sensor screens, charts, and simulator remain planned.
 Redis, queues, MQTT and real-time services remain planned.

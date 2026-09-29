@@ -1,6 +1,6 @@
 # SensorHub V1 Roadmap
 
-**Status:** Phases 0–7 implemented; later phases planned
+**Status:** Phases 0–8 implemented; later phases planned
 
 ## Phase 0 — Contracts and decisions
 
@@ -87,14 +87,14 @@ accessing another user's history.
 
 ## Phase 8 — React foundation and SPA authentication
 
-- Create the TypeScript/Vite/Tailwind frontend structure.
-- Add the Sanctum CSRF/session flow and frontend unit/component tests.
+- Create the TypeScript/Vite/Tailwind frontend structure, public and protected routes.
+- Add Sanctum CSRF/session registration, login, refresh and logout with component tests.
 
 **Done when:** the frontend can authenticate and consume typed API responses.
 
 ## Phase 9 — Device and Sensor management dashboard
 
-- Add login, device/sensor views, measurement history and loading/error states.
+- Add device/sensor views, measurement history and loading/error states.
 
 **Done when:** the dashboard presents the complete V1 user workflow.
 
