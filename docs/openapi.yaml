@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: SensorHub API
-  version: 1.0.0-planned
-  description: V1 REST contract. User authentication is implemented; domain endpoints remain planned.
+  version: 1.0.0
+  description: V1 REST contract. User authentication and Device/Sensor CRUD are implemented; other domain endpoints remain planned.
   license:
     name: MIT
     identifier: MIT
@@ -95,6 +95,9 @@ paths:
       tags: [Devices]
       operationId: listDevices
       summary: List owned devices
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
       security: [{ sanctumCookie: [] }]
       responses:
         '200':
@@ -148,7 +151,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/DeviceRequest' }
+            schema: { $ref: '#/components/schemas/DeviceUpdateRequest' }
       responses:
         '200':
           description: Device updated
@@ -159,6 +162,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/Conflict' }
     delete:
       tags: [Devices]
       operationId: deleteDevice
@@ -169,6 +173,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
   /devices/{device}/sensors:
     parameters:
       - $ref: '#/components/parameters/DeviceId'
@@ -234,7 +239,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/SensorRequest' }
+            schema: { $ref: '#/components/schemas/SensorUpdateRequest' }
       responses:
         '200':
           description: Sensor updated
@@ -391,7 +396,7 @@ components:
       description: Resource not found
       content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
     Conflict:
-      description: Resource conflicts with an existing identifier
+      description: Resource conflicts with an identifier, dependency, or immutable measurement unit
       content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
     ValidationError:
       description: Request validation failed
@@ -424,7 +429,15 @@ components:
       properties: { data: { $ref: '#/components/schemas/User' } }
     DeviceRequest:
       type: object
+      additionalProperties: false
       required: [name, identifier]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        identifier: { type: string, minLength: 1, maxLength: 120 }
+    DeviceUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
       properties:
         name: { type: string, minLength: 1, maxLength: 120 }
         identifier: { type: string, minLength: 1, maxLength: 120 }
@@ -477,9 +490,19 @@ components:
         created_at: { type: string, format: date-time }
     SensorRequest:
       type: object
+      additionalProperties: false
       required: [key, name, type]
       properties:
         key: { type: string, pattern: '^[a-z0-9_\\-]+$', maxLength: 80 }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        type: { type: string, enum: [temperature, humidity, pressure, generic] }
+        unit: { type: [string, 'null'], maxLength: 20 }
+    SensorUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      description: Key is immutable; unit may change only before the first measurement.
+      properties:
         name: { type: string, minLength: 1, maxLength: 120 }
         type: { type: string, enum: [temperature, humidity, pressure, generic] }
         unit: { type: [string, 'null'], maxLength: 20 }

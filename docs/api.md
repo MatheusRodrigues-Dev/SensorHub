@@ -1,6 +1,6 @@
 # SensorHub V1 API Guide
 
-**Status:** User authentication implemented; domain endpoints planned
+**Status:** User authentication and Device/Sensor CRUD implemented; remaining domain endpoints planned
 **Base path:** `/api/v1`
 
 The authoritative machine-readable contract is [`openapi.yaml`](openapi.yaml).
@@ -59,8 +59,8 @@ operation. It is never returned by read endpoints.
 | `GET` | `/sensors/{sensor}/measurements` | User | Query measurements |
 | `POST` | `/devices/{device}/telemetry` | Device | Ingest a batch |
 
-Only the four `/auth/*` routes above are implemented. The other catalogue
-entries remain planned. Login is limited to ten attempts per minute per IP and
+The four `/auth/*` and ten Device/Sensor routes above are implemented. The other
+catalogue entries remain planned. Login is limited to ten attempts per minute per IP and
 five per normalized email; excess requests receive `429`. Missing or invalid CSRF on a
 state-changing first-party request returns `419`.
 
@@ -88,6 +88,10 @@ state-changing first-party request returns `419`.
 The `sensor_key` value is the immutable machine key belonging to the addressed
 device. It is not the sensor's display name. The server validates ownership of
 every key before writing the batch.
+`Sensor.key` cannot be changed by PATCH. `Sensor.name` may change, while
+`Sensor.unit` may change only before the first measurement. A later unit
+change returns `409`. Deleted sensors stay hidden from normal routes and keep
+their keys reserved; V1 provides no restore operation.
 
 `Sensor.unit` is the source of truth. The optional telemetry `unit` is an
 assertion only; if it differs from the sensor's configured unit, the entire
@@ -112,6 +116,8 @@ be diagnosed.
 - An authenticated user without ownership returns `403`.
 - An unknown resource returns `404`.
 - Credential conflicts or duplicate identifiers return `409`.
+- Deleting a Device with dependent Sensors or credentials returns `409`.
+- Changing a Sensor unit after measurements exist returns `409`.
 - A unit assertion that conflicts with the sensor definition returns `422`.
 - Unexpected failures use `500` and must not expose internals.
 

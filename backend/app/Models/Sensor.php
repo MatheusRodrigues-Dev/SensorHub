@@ -34,6 +34,10 @@ class Sensor extends Model
             if ($sensor->isDirty('key')) {
                 throw new LogicException('A sensor key cannot be changed.');
             }
+
+            if ($sensor->isDirty('unit') && $sensor->measurements()->exists()) {
+                throw new LogicException('A sensor unit cannot be changed after measurements exist.');
+            }
         });
     }
 }

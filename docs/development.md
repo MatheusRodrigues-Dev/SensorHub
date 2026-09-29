@@ -167,6 +167,15 @@ user endpoint returns `id`, `name` and `email` only. A missing CSRF token gives
 attempts per minute per IP and five per normalized email, using Laravel's existing
 cache configuration.
 
+Device routes list/create through the authenticated user's relationship.
+Device lists accept `page` and `per_page` (default 25, maximum 100); Sensor
+lists are unpaginated. Nested Sensor routes use `scopeBindings()`, yielding
+`404` for a mismatched parent; Policies return `403` for foreign resources.
+Duplicate identifiers/keys and dependency-protected Device deletes yield
+`409`. Sensor delete is soft and retains measurements and key reservation.
+`Sensor.key` is immutable; `Sensor.unit` changes only before the first
+Measurement. Measurement rows also retain the canonical unit snapshot.
+
 Local HTTP uses `SESSION_SECURE_COOKIE=false`, an HTTP-only host-only
 `sensorhub_session` cookie, `SESSION_SAME_SITE=lax`, and the database session
 driver. `CORS_ALLOWED_ORIGINS` is an explicit allowlist; credentialed CORS is
@@ -180,7 +189,7 @@ production HTTPS deployment has been validated.
 ## Current scope
 
 The Laravel and React skeletons, versioned API foundation, V1 domain
-persistence, SPA user authentication and ownership policies are implemented.
-Domain CRUD routes, device bearer authentication, telemetry and dashboard
+persistence, SPA user authentication, ownership policies, and Device/Sensor
+CRUD are implemented. Device bearer authentication, telemetry and dashboard
 behavior remain planned.
 Redis, queues, MQTT and real-time services remain planned.

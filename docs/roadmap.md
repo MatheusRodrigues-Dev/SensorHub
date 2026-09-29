@@ -1,6 +1,6 @@
 # SensorHub V1 Roadmap
 
-**Status:** Planned
+**Status:** Phases 0–5 implemented; later phases planned
 
 ## Phase 0 — Contracts and decisions
 

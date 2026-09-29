@@ -72,6 +72,9 @@ Represents one measurement channel on a device.
 The pair `device_id + key` is unique.
 `Sensor.key` is immutable through Eloquent. Its unique constraint continues to
 reserve the key after soft deletion.
+`Sensor.name` may change. `Sensor.unit` may change only before the first
+measurement; after that it is immutable, even though each measurement also
+stores a copy of the canonical unit for historical interpretation.
 
 ### `measurements`
 
