@@ -1,0 +1,520 @@
+openapi: 3.1.0
+info:
+  title: SensorHub API
+  version: 1.0.0-planned
+  description: Planned REST contract for the SensorHub IoT telemetry platform.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /api/v1
+    description: Planned API base path
+tags:
+  - name: Authentication
+    description: User registration and session management.
+  - name: Devices
+    description: User-owned devices and their credentials.
+  - name: Sensors
+    description: Measurement channels attached to devices.
+  - name: Measurements
+    description: Historical sensor measurements.
+  - name: Telemetry
+    description: Device-to-platform telemetry ingestion.
+paths:
+  /auth/register:
+    post:
+      tags: [Authentication]
+      operationId: registerUser
+      summary: Register a user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201':
+          description: User registered
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/login:
+    post:
+      tags: [Authentication]
+      operationId: loginUser
+      summary: Start a user session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '204': { description: Session started }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      operationId: logoutUser
+      summary: End a user session
+      security: [{ sanctumCookie: [] }]
+      responses:
+        '204': { description: Session ended }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/user:
+    get:
+      tags: [Authentication]
+      operationId: getAuthenticatedUser
+      summary: Return the authenticated user
+      security: [{ sanctumCookie: [] }]
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /devices:
+    get:
+      tags: [Devices]
+      operationId: listDevices
+      summary: List owned devices
+      security: [{ sanctumCookie: [] }]
+      responses:
+        '200':
+          description: Device collection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceCollectionResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Devices]
+      operationId: createDevice
+      summary: Create a device
+      security: [{ sanctumCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeviceRequest' }
+      responses:
+        '201':
+          description: Device created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /devices/{device}:
+    parameters:
+      - $ref: '#/components/parameters/DeviceId'
+    get:
+      tags: [Devices]
+      operationId: getDevice
+      summary: Show an owned device
+      security: [{ sanctumCookie: [] }]
+      responses:
+        '200':
+          description: Device
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Devices]
+      operationId: updateDevice
+      summary: Update an owned device
+      security: [{ sanctumCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeviceRequest' }
+      responses:
+        '200':
+          description: Device updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Devices]
+      operationId: deleteDevice
+      summary: Remove an owned device
+      security: [{ sanctumCookie: [] }]
+      responses:
+        '204': { description: Device removed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /devices/{device}/sensors:
+    parameters:
+      - $ref: '#/components/parameters/DeviceId'
+    get:
+      tags: [Sensors]
+      operationId: listDeviceSensors
+      summary: List sensors for a device
+      security: [{ sanctumCookie: [] }]
+      responses:
+        '200':
+          description: Sensor collection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SensorCollectionResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Sensors]
+      operationId: createSensor
+      summary: Create a sensor
+      security: [{ sanctumCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SensorRequest' }
+      responses:
+        '201':
+          description: Sensor created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SensorResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /devices/{device}/sensors/{sensor}:
+    parameters:
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/SensorId'
+    get:
+      tags: [Sensors]
+      operationId: getSensor
+      summary: Show a sensor
+      security: [{ sanctumCookie: [] }]
+      responses:
+        '200':
+          description: Sensor
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SensorResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Sensors]
+      operationId: updateSensor
+      summary: Update a sensor
+      security: [{ sanctumCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SensorRequest' }
+      responses:
+        '200':
+          description: Sensor updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SensorResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Sensors]
+      operationId: deleteSensor
+      summary: Remove a sensor
+      security: [{ sanctumCookie: [] }]
+      responses:
+        '204': { description: Sensor removed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /devices/{device}/credentials:
+    parameters:
+      - $ref: '#/components/parameters/DeviceId'
+    post:
+      tags: [Devices]
+      operationId: createDeviceCredential
+      summary: Create a device credential
+      security: [{ sanctumCookie: [] }]
+      responses:
+        '201':
+          description: Credential created; plaintext token is returned once
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceTokenResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /devices/{device}/credentials/rotate:
+    parameters:
+      - $ref: '#/components/parameters/DeviceId'
+    post:
+      tags: [Devices]
+      operationId: rotateDeviceCredential
+      summary: Rotate a device credential
+      security: [{ sanctumCookie: [] }]
+      responses:
+        '201':
+          description: Credential rotated; plaintext token is returned once
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceTokenResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /devices/{device}/credentials/revoke:
+    parameters:
+      - $ref: '#/components/parameters/DeviceId'
+    delete:
+      tags: [Devices]
+      operationId: revokeDeviceCredential
+      summary: Revoke a device credential
+      security: [{ sanctumCookie: [] }]
+      responses:
+        '204': { description: Credential revoked }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /sensors/{sensor}/measurements:
+    parameters:
+      - $ref: '#/components/parameters/SensorId'
+    get:
+      tags: [Measurements]
+      operationId: listMeasurements
+      summary: Query measurements for a sensor
+      security: [{ sanctumCookie: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/From' }
+        - { $ref: '#/components/parameters/To' }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PerPage' }
+      responses:
+        '200':
+          description: Measurement collection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeasurementCollectionResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /devices/{device}/telemetry:
+    parameters:
+      - $ref: '#/components/parameters/DeviceId'
+    post:
+      tags: [Telemetry]
+      operationId: ingestTelemetry
+      summary: Ingest a batch of device measurements
+      security: [{ deviceBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TelemetryRequest' }
+      responses:
+        '202':
+          description: Telemetry accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TelemetryResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+components:
+  securitySchemes:
+    sanctumCookie:
+      type: apiKey
+      in: cookie
+      name: sensorhub_session
+      description: Stateful Laravel Sanctum session cookie. CSRF is required for state-changing requests.
+    deviceBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: SensorHubDeviceToken
+  parameters:
+    DeviceId: { name: device, in: path, required: true, schema: { type: string, format: ulid } }
+    SensorId: { name: sensor, in: path, required: true, schema: { type: string, format: ulid } }
+    From: { name: from, in: query, required: false, schema: { type: string, format: date-time } }
+    To: { name: to, in: query, required: false, schema: { type: string, format: date-time } }
+    Page: { name: page, in: query, required: false, schema: { type: integer, minimum: 1, default: 1 } }
+    PerPage: { name: per_page, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Forbidden:
+      description: Authenticated principal does not own the resource
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    NotFound:
+      description: Resource not found
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Conflict:
+      description: Resource conflicts with an existing identifier
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    ValidationError:
+      description: Request validation failed
+      content: { application/json: { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } }
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [name, email, password, password_confirmation]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        email: { type: string, format: email }
+        password: { type: string, format: password, minLength: 8 }
+        password_confirmation: { type: string, format: password }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    User:
+      type: object
+      required: [id, name, email]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        email: { type: string, format: email }
+    UserResponse:
+      type: object
+      required: [data]
+      properties: { data: { $ref: '#/components/schemas/User' } }
+    DeviceRequest:
+      type: object
+      required: [name, identifier]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        identifier: { type: string, minLength: 1, maxLength: 120 }
+    Device:
+      type: object
+      required: [id, name, identifier, created_at, updated_at]
+      properties:
+        id: { type: string, format: ulid }
+        name: { type: string }
+        identifier: { type: string }
+        token_last_used_at: { type: [string, 'null'], format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    DeviceResponse:
+      type: object
+      required: [data]
+      properties: { data: { $ref: '#/components/schemas/Device' } }
+    DeviceCollectionResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Device' } }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+    DeviceTokenResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [token]
+          properties:
+            token:
+              type: string
+              description: Plaintext token. Returned only once at creation or rotation.
+    SensorRequest:
+      type: object
+      required: [key, name, type]
+      properties:
+        key: { type: string, pattern: '^[a-z0-9_\\-]+$', maxLength: 80 }
+        name: { type: string, minLength: 1, maxLength: 120 }
+        type: { type: string, enum: [temperature, humidity, pressure, generic] }
+        unit: { type: [string, 'null'], maxLength: 20 }
+    Sensor:
+      type: object
+      required: [id, device_id, key, name, type]
+      properties:
+        id: { type: string, format: ulid }
+        device_id: { type: string, format: ulid }
+        key: { type: string }
+        name: { type: string }
+        type: { type: string }
+        unit: { type: [string, 'null'] }
+    SensorResponse:
+      type: object
+      required: [data]
+      properties: { data: { $ref: '#/components/schemas/Sensor' } }
+    SensorCollectionResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Sensor' } }
+    Measurement:
+      type: object
+      required: [id, sensor_id, value, measured_at, created_at]
+      properties:
+        id: { type: string, format: ulid }
+        sensor_id: { type: string, format: ulid }
+        value: { type: number }
+        unit: { type: [string, 'null'] }
+        measured_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+    MeasurementCollectionResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Measurement' } }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+    TelemetryReading:
+      type: object
+      required: [sensor, value, measured_at]
+      properties:
+        sensor: { type: string, minLength: 1, maxLength: 80 }
+        value: { type: number }
+        unit: { type: [string, 'null'], maxLength: 20 }
+        measured_at: { type: string, format: date-time }
+    TelemetryRequest:
+      type: object
+      required: [measurements]
+      properties:
+        measurements:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: '#/components/schemas/TelemetryReading' }
+    TelemetryResponse:
+      type: object
+      required: [accepted]
+      properties:
+        accepted: { type: integer, minimum: 0 }
+    PaginationMeta:
+      type: object
+      required: [current_page, per_page, total]
+      properties:
+        current_page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+    ValidationErrorResponse:
+      type: object
+      required: [message, errors]
+      properties:
+        message: { type: string }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
