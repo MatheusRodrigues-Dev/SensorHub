@@ -66,10 +66,16 @@ and response serialization in API Resources.
 
 - Human users authenticate with Sanctum's stateful SPA cookie flow and CSRF
   protection.
-- Devices authenticate with a dedicated bearer token. Only a hash is stored in
-  MySQL. The plaintext token is shown once when created or rotated.
+- Devices authenticate with a dedicated bearer token represented by a
+  `DeviceCredential` record. Only a hash is stored in MySQL. The plaintext token
+  is shown once when created or rotated.
 - User endpoints use user authentication; telemetry ingestion uses device
   authentication. The two credentials must never be interchangeable.
+
+The local Docker/Nginx topology must configure the frontend and API as a
+deliberate first-party pair (for example `frontend.sensorhub.local` and
+`api.sensorhub.local`). Sanctum stateful domains, cookie settings, CSRF and CORS
+must be configured together rather than treated as independent defaults.
 
 ## Deliberately deferred capabilities
 

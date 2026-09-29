@@ -17,8 +17,14 @@ structured React/TypeScript frontend, a simulator client, and MySQL. Run the
 development environment through Docker Compose with Nginx as the HTTP entrypoint.
 
 Use Sanctum's stateful SPA cookie flow for human users and separate hashed
-bearer tokens for IoT devices. Keep the domain model intentionally small:
-`User -> Device -> Sensor -> Measurement`.
+bearer tokens for IoT devices. Represent device credentials as a dedicated
+`DeviceCredential` entity so creation, rotation, expiry and revocation have a
+real lifecycle. Keep the domain model intentionally small:
+`User -> Device -> DeviceCredential/Sensor -> Measurement`.
+
+Use immutable `Sensor.key` values as the device-facing telemetry identifier.
+Telemetry batches validate every reading and unit assertion before inserting all
+measurements atomically in one database transaction.
 
 ## Alternatives considered
 

@@ -11,7 +11,20 @@
 **Done when:** a developer can implement the first vertical slice without
 inventing endpoint, ownership or authentication behavior.
 
-## Phase 1 — Docker foundation
+## Phase 0.1 — Contract review
+
+- Model device credentials as a dedicated `DeviceCredential` lifecycle entity.
+- Freeze immutable `Sensor.key` and use `sensor_key` in telemetry payloads.
+- Treat `Sensor.unit` as the source of truth and reject conflicting assertions.
+- Make telemetry batches atomic and distinguish device `measured_at` from server
+  `created_at` receipt time.
+- Document Sanctum cookie/CSRF behavior separately from device bearer auth.
+- Record the ULID storage/index trade-off for future telemetry-volume review.
+
+**Done when:** `database.md`, `api.md` and `openapi.yaml` describe the same
+entities, paths, payload names, authentication schemes and failure behavior.
+
+## Phase 1 — Docker infrastructure
 
 - Create Compose services for Nginx, Laravel API, React frontend and MySQL.
 - Add health checks, named volumes, environment examples and service networks.
@@ -20,35 +33,76 @@ inventing endpoint, ownership or authentication behavior.
 **Done when:** the documented Compose workflow boots the planned services and
 the API can reach MySQL.
 
-## Phase 2 — Laravel domain foundation
+## Phase 2 — Laravel foundation
 
 - Bootstrap Laravel 13 and Sanctum.
-- Add ULID-backed devices, sensors and measurements.
+- Configure API versioning, base middleware and the application test harness.
+- Establish the Actions, Form Requests, Policies and API Resources conventions.
+
+**Done when:** the Laravel service boots in Docker with a repeatable test
+command and the agreed application boundaries are established.
+
+## Phase 3 — Database and domain
+
+- Add ULID-backed devices, credentials, sensors and measurements.
 - Add migrations, factories, seeders, policies, resources and validation.
-- Implement user registration, login, logout and current-user endpoints.
+- Add user ownership tests and the immutable sensor-key rules.
 
-**Done when:** authenticated users can be created and ownership rules are
-covered by automated tests.
+**Done when:** the domain model and constraints are covered by automated tests.
 
-## Phase 3 — Device and telemetry vertical slice
+## Phase 4 — User authentication
+
+- Bootstrap Laravel 13 and Sanctum user authentication.
+- Implement registration, login, logout and current-user endpoints.
+
+**Done when:** users can authenticate through the documented SPA cookie flow.
+
+## Phase 5 — Device management
 
 - Implement device and sensor CRUD.
-- Implement device token create, rotate and revoke flows.
-- Implement batch telemetry ingestion and measurement queries.
+- Implement `DeviceCredential` create, rotate and revoke flows.
 - Add Feature tests for valid, invalid, unauthorized and cross-owner requests.
+
+**Done when:** authenticated users can manage only their own devices and
+credentials.
+
+## Phase 6 — IoT authentication and telemetry
+
+- Implement device bearer-token middleware.
+- Implement atomic batch telemetry ingestion and measurement queries.
+- Validate every `sensor_key` and optional unit assertion before persistence.
 
 **Done when:** the simulator can submit readings and an authenticated client
 can retrieve them through `/api/v1`.
 
-## Phase 4 — React dashboard and simulator
+## Phase 7 — React foundation
 
 - Create the TypeScript/Vite/Tailwind frontend structure.
-- Add login, device/sensor views, measurement history and loading/error states.
-- Create the simulator with configurable device credentials and interval.
 - Add frontend unit/component tests.
+
+**Done when:** the frontend can authenticate and consume typed API responses.
+
+## Phase 8 — Dashboard
+
+- Add login, device/sensor views, measurement history and loading/error states.
+
+**Done when:** the dashboard presents the complete V1 user workflow.
+
+## Phase 9 — Simulator
+
+- Create the simulator with configurable device credentials and interval.
 
 **Done when:** `docker compose up` plus documented setup steps produces a
 repeatable end-to-end demo.
+
+## Phase 10 — Tests, CI and documentation review
+
+- Run backend and frontend test suites in Docker.
+- Add CI checks for tests, formatting and OpenAPI validation.
+- Reconcile implementation behavior with all planned documents.
+
+**Done when:** the repository is reproducible and its implementation no longer
+contradicts the approved contracts.
 
 ## Planned later — operational evolution
 

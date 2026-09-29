@@ -9,9 +9,12 @@ The authoritative machine-readable contract is [`openapi.yaml`](openapi.yaml).
 
 ### User SPA
 
-The React client first obtains the Sanctum CSRF cookie, then submits login
-credentials. Subsequent requests use the stateful session cookie and CSRF token.
-User endpoints require the authenticated session.
+The React client first calls Laravel's `/sanctum/csrf-cookie` endpoint, then
+submits login credentials. Subsequent state-changing requests use the stateful
+session cookie and CSRF token. User endpoints require the authenticated session.
+The Docker/Nginx setup will use a deliberate first-party host configuration
+(for example `frontend.sensorhub.local` and `api.sensorhub.local`) with
+Sanctum stateful domains, cookie domains and CORS configured together.
 
 ### Device telemetry
 
@@ -42,9 +45,9 @@ operation. It is never returned by read endpoints.
 | `GET` | `/devices/{device}/sensors/{sensor}` | User | Show a sensor |
 | `PATCH` | `/devices/{device}/sensors/{sensor}` | User | Update a sensor |
 | `DELETE` | `/devices/{device}/sensors/{sensor}` | User | Remove a sensor |
-| `POST` | `/devices/{device}/credentials` | User | Create a device token |
-| `POST` | `/devices/{device}/credentials/rotate` | User | Rotate the token |
-| `DELETE` | `/devices/{device}/credentials` | User | Revoke the token |
+| `POST` | `/devices/{device}/credentials` | User | Create a named device token |
+| `POST` | `/devices/{device}/credentials/{credential}/rotate` | User | Rotate a token |
+| `DELETE` | `/devices/{device}/credentials/{credential}` | User | Revoke a token |
 | `GET` | `/sensors/{sensor}/measurements` | User | Query measurements |
 | `POST` | `/devices/{device}/telemetry` | Device | Ingest a batch |
 
@@ -54,13 +57,13 @@ operation. It is never returned by read endpoints.
 {
   "measurements": [
     {
-      "sensor": "temperature",
+      "sensor_key": "temperature",
       "value": 24.8,
       "unit": "°C",
       "measured_at": "2026-09-29T12:30:00Z"
     },
     {
-      "sensor": "humidity",
+      "sensor_key": "humidity",
       "value": 61.2,
       "unit": "%",
       "measured_at": "2026-09-29T12:30:00Z"
@@ -69,8 +72,21 @@ operation. It is never returned by read endpoints.
 }
 ```
 
-The `sensor` value is the stable sensor key belonging to the addressed device.
-The server validates ownership of the key and persists each accepted reading.
+The `sensor_key` value is the immutable machine key belonging to the addressed
+device. It is not the sensor's display name. The server validates ownership of
+every key before writing the batch.
+
+`Sensor.unit` is the source of truth. The optional telemetry `unit` is an
+assertion only; if it differs from the sensor's configured unit, the entire
+request returns `422` and nothing is persisted.
+
+Telemetry batches are atomic. The API validates authentication, every sensor
+key and every unit assertion before opening one database transaction. Any
+failure rolls back the complete batch.
+
+`measured_at` is the device-side event time. The measurement's `created_at` is
+the server receipt/persistence time, allowing delayed or offline telemetry to
+be diagnosed.
 
 ## Response and error conventions
 
@@ -83,6 +99,7 @@ The server validates ownership of the key and persists each accepted reading.
 - An authenticated user without ownership returns `403`.
 - An unknown resource returns `404`.
 - Credential conflicts or duplicate identifiers return `409`.
+- A unit assertion that conflicts with the sensor definition returns `422`.
 - Unexpected failures use `500` and must not expose internals.
 
 Error bodies use a consistent shape:

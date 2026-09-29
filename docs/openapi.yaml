@@ -250,6 +250,11 @@ paths:
       operationId: createDeviceCredential
       summary: Create a device credential
       security: [{ sanctumCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeviceCredentialRequest' }
       responses:
         '201':
           description: Credential created; plaintext token is returned once
@@ -260,9 +265,10 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
-  /devices/{device}/credentials/rotate:
+  /devices/{device}/credentials/{credential}/rotate:
     parameters:
       - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/CredentialId'
     post:
       tags: [Devices]
       operationId: rotateDeviceCredential
@@ -277,9 +283,10 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-  /devices/{device}/credentials/revoke:
+  /devices/{device}/credentials/{credential}:
     parameters:
       - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/CredentialId'
     delete:
       tags: [Devices]
       operationId: revokeDeviceCredential
@@ -326,8 +333,8 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/TelemetryRequest' }
       responses:
-        '202':
-          description: Telemetry accepted
+        '201':
+          description: Telemetry persisted atomically
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TelemetryResponse' }
@@ -348,6 +355,7 @@ components:
   parameters:
     DeviceId: { name: device, in: path, required: true, schema: { type: string, format: ulid } }
     SensorId: { name: sensor, in: path, required: true, schema: { type: string, format: ulid } }
+    CredentialId: { name: credential, in: path, required: true, schema: { type: string, format: ulid } }
     From: { name: from, in: query, required: false, schema: { type: string, format: date-time } }
     To: { name: to, in: query, required: false, schema: { type: string, format: date-time } }
     Page: { name: page, in: query, required: false, schema: { type: integer, minimum: 1, default: 1 } }
@@ -407,7 +415,6 @@ components:
         id: { type: string, format: ulid }
         name: { type: string }
         identifier: { type: string }
-        token_last_used_at: { type: [string, 'null'], format: date-time }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
     DeviceResponse:
@@ -426,11 +433,28 @@ components:
       properties:
         data:
           type: object
-          required: [token]
+          required: [credential, token]
           properties:
+            credential: { $ref: '#/components/schemas/DeviceCredential' }
             token:
               type: string
               description: Plaintext token. Returned only once at creation or rotation.
+    DeviceCredentialRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+    DeviceCredential:
+      type: object
+      required: [id, device_id, name, created_at]
+      properties:
+        id: { type: string, format: ulid }
+        device_id: { type: string, format: ulid }
+        name: { type: string }
+        last_used_at: { type: [string, 'null'], format: date-time }
+        expires_at: { type: [string, 'null'], format: date-time }
+        revoked_at: { type: [string, 'null'], format: date-time }
+        created_at: { type: string, format: date-time }
     SensorRequest:
       type: object
       required: [key, name, type]
@@ -476,9 +500,9 @@ components:
         meta: { $ref: '#/components/schemas/PaginationMeta' }
     TelemetryReading:
       type: object
-      required: [sensor, value, measured_at]
+      required: [sensor_key, value, measured_at]
       properties:
-        sensor: { type: string, minLength: 1, maxLength: 80 }
+        sensor_key: { type: string, minLength: 1, maxLength: 80 }
         value: { type: number }
         unit: { type: [string, 'null'], maxLength: 20 }
         measured_at: { type: string, format: date-time }
