@@ -1,6 +1,6 @@
 # SensorHub V1 Roadmap
 
-**Status:** Phases 0–8 implemented; later phases planned
+**Status:** Phases 0–9 implemented; later phases planned
 
 ## Phase 0 — Contracts and decisions
 
@@ -94,9 +94,12 @@ accessing another user's history.
 
 ## Phase 9 — Device and Sensor management dashboard
 
-- Add device/sensor views, measurement history and loading/error states.
+- Use TanStack Query for Device, Sensor and Measurement server state.
+- Add Device/Sensor views, time filters, paginated history and a Recharts line chart.
+- Keep Auth Context responsible only for the SPA session.
 
-**Done when:** the dashboard presents the complete V1 user workflow.
+**Done when:** authenticated users can manage Devices/Sensors and inspect raw
+historical Measurements in the React application.
 
 ## Phase 10 — Simulator and end-to-end polish
 

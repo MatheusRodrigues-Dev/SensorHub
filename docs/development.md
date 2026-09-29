@@ -1,6 +1,6 @@
 # SensorHub Docker Development
 
-**Status:** Phases 0–8 implemented
+**Status:** Phases 0–9 implemented
 
 Docker Compose is the official development environment. The host is expected
 to provide only Git and Docker with Docker Compose.
@@ -214,11 +214,15 @@ production HTTPS deployment has been validated.
 ## React SPA
 
 The frontend lives in `frontend/src`: `features/auth` owns the Context and
-hook, `lib/api.ts` is the single HTTP client, `pages` contains registration
-and login, `layouts` contains public and protected shells, and `components/ui`
-contains the two reusable form controls used today. React Router handles `/`,
-`/login`, `/register`, and `/app`. Authenticated visitors reaching public auth
-routes go to `/app`; unauthenticated visitors reaching `/app` go to `/login`.
+hook; `features/devices`, `features/sensors`, and `features/measurements` own
+domain API calls and screens; `lib/api.ts` is the single HTTP client; `pages`
+contains registration and login; `layouts` contains public and protected
+shells; and `components/ui` contains shared controls. React Router handles
+`/`, `/login`, `/register`, `/app`, `/app/devices/:deviceId`,
+`/app/devices/:deviceId/sensors/:sensorId`, and
+`/app/sensors/:sensorId/history` for a soft-deleted Sensor. Authenticated
+visitors reaching public auth routes go to `/app`; unauthenticated visitors
+reaching protected routes go to `/login`.
 The route tree waits for `GET /api/v1/auth/user` before choosing either path.
 Network failures show a retry state rather than pretending the session ended.
 
@@ -232,6 +236,35 @@ Registration returns a user but does not start a session, so the UI logs in
 after a successful registration. No bearer token or auth state is stored in
 browser storage. Session restoration always queries the backend after refresh.
 
+Auth Context remains responsible for the browser session. One TanStack
+QueryClient manages Device, Sensor and Measurement server state without cache
+persistence. `lib/queryKeys.ts` defines keys for paginated Device lists,
+Device details, per-Device Sensor lists, Sensor details, and Measurement
+histories by Sensor, date bounds, page and page size. Confirmed mutations
+invalidate the affected list/details. Logout and domain API `401` clear the
+query cache before the next user can access it. The API remains authoritative;
+there are no optimistic domain updates.
+
+The Device dashboard exposes owned Devices and their active Sensors. Sensor
+edit omits `key` from PATCH requests. A `409` when changing a unit after
+measurements exist is shown as a domain conflict. Soft deletion removes a
+Sensor from active lists and navigates to a read-only history route; this
+history remains accessible by its URL after refresh. There is no archived
+Sensor list in V1, so a user who leaves that URL cannot rediscover archived
+Sensors in the UI. This limitation does not affect authorized API access.
+
+Measurement filters use browser-local `datetime-local` controls and send
+timezone-aware UTC ISO strings. The table displays each Measurement's stored
+historical `unit` and local display time. Pagination uses 25 rows per page;
+the Recharts line chart shows only the currently loaded raw page, with no
+aggregation or implicit fetch of all history. Recharts loads on demand when
+the history view is opened.
+
+Credential management UI remains deferred. The approved API has create,
+rotate and revoke operations but no GET for existing credential metadata;
+therefore the UI could not reconstruct credential state after refresh. No
+endpoint was added in Phase 9.
+
 Run `docker compose exec frontend npm test`, `npm run build`, and `npm run lint`
 through the frontend service. Tests use Vitest and React Testing Library. The
 Nginx entry point serves Vite with history fallback, so refreshing any SPA
@@ -239,8 +272,9 @@ route remains supported.
 
 ## Current scope
 
-The Laravel API, V1 persistence, SPA user authentication, ownership policies,
-Device/Sensor CRUD, credential lifecycle, device Bearer authentication, atomic
-telemetry ingestion, read-only Measurement history, and React SPA authentication
-are implemented. Device/Sensor screens, charts, and simulator remain planned.
+The Laravel API, V1 persistence, SPA authentication, ownership policies,
+Device/Sensor CRUD, credential lifecycle, device Bearer authentication,
+telemetry ingestion, and read-only Measurement history are implemented. The
+React SPA provides Device/Sensor screens and paginated Measurement charts.
+Credential management UI and simulator remain planned.
 Redis, queues, MQTT and real-time services remain planned.

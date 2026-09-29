@@ -1,10 +1,17 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useState } from 'react'
 import { AuthProvider } from './features/auth/AuthContext'
 import { useAuth } from './features/auth/useAuth'
 import { AuthLayout } from './layouts/AuthLayout'
 import { AppLayout } from './layouts/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { NotFoundPage } from './pages/NotFoundPage'
+import { DevicesPage } from './features/devices/DevicesPage'
+import { DevicePage } from './features/devices/DevicePage'
+import { SensorPage } from './features/sensors/SensorPage'
+import { ArchivedHistoryPage } from './features/measurements/ArchivedHistoryPage'
 
 function AppRoutes() {
   const auth = useAuth()
@@ -21,11 +28,18 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
     </Route>
-    <Route path="/app" element={auth.status === 'authenticated' ? <AppLayout /> : <Navigate to="/login" replace />} />
-    <Route path="*" element={<Navigate to="/" replace />} />
+    <Route path="/app" element={auth.status === 'authenticated' ? <AppLayout /> : <Navigate to="/login" replace />}>
+      <Route index element={<DevicesPage />} />
+      <Route path="devices/:deviceId" element={<DevicePage />} />
+      <Route path="devices/:deviceId/sensors/:sensorId" element={<SensorPage />} />
+      <Route path="sensors/:sensorId/history" element={<ArchivedHistoryPage />} />
+      <Route path="*" element={<NotFoundPage />} />
+    </Route>
+    <Route path="*" element={<NotFoundPage />} />
   </Routes>
 }
 
 export default function App() {
-  return <BrowserRouter><AuthProvider><AppRoutes /></AuthProvider></BrowserRouter>
+  const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 15_000 } } }))
+  return <QueryClientProvider client={queryClient}><BrowserRouter><AuthProvider><AppRoutes /></AuthProvider></BrowserRouter></QueryClientProvider>
 }

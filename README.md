@@ -5,12 +5,14 @@ Laravel REST API, a React dashboard, and a Docker-first development workflow.
 
 Docker infrastructure, the versioned API foundation, the V1 persistence model,
 and user SPA authentication with ownership policies are implemented. The React
-SPA now supports registration, login, session restoration and logout. Device
+SPA supports registration, login, session restoration and logout. Device
 and Sensor CRUD endpoints, credential lifecycle, device Bearer authentication,
 atomic telemetry ingestion, and historical Measurement queries are implemented.
-Device/Sensor management screens, charts and simulator remain planned.
+The React dashboard now supports Device and Sensor management plus paginated
+Measurement history with a current-page time-series chart. Credential
+management UI and the simulator remain planned.
 
-## Planned stack
+## Stack
 
 - Backend: Laravel 13, PHP 8.4/8.5, Eloquent and MySQL
 - API: versioned REST API under `/api/v1`

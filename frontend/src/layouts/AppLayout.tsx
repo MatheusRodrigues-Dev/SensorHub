@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/Button'
+import { Alert } from '../components/ui/Alert'
 import { useAuth } from '../features/auth/useAuth'
 
 export function AppLayout() {
@@ -16,7 +17,14 @@ export function AppLayout() {
     finally { setPending(false) }
   }
   return <div className="min-h-screen bg-slate-950 text-slate-100">
-    <header className="border-b border-slate-800"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-5"><span className="text-xl font-bold"><span className="text-cyan-400">S</span> SensorHub</span><div className="flex items-center gap-5"><span className="hidden text-sm text-slate-300 sm:block">{auth.user.email}</span><Button onClick={signOut} disabled={pending} className="min-h-9 bg-slate-800 px-4 text-slate-100 hover:bg-slate-700">{pending ? 'Signing out…' : 'Sign out'}</Button></div></div></header>
-    <main className="mx-auto max-w-6xl px-6 py-16"><p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-cyan-400">Workspace</p><h1 className="text-4xl font-semibold tracking-tight">Welcome, {auth.user.name}.</h1><p className="mt-4 max-w-xl text-slate-400">Your account is connected. Device management and measurement views are coming in the next phase.</p>{error && <p role="alert" className="mt-6 text-rose-300">{error}</p>}</main>
+    <header className="border-b border-slate-800 bg-slate-900/50">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+        <Link to="/app" className="rounded-lg text-xl font-bold tracking-tight focus-visible:outline-2 focus-visible:outline-cyan-300"><span className="text-cyan-400">S</span> SensorHub</Link>
+        <nav aria-label="Main navigation" className="order-3 w-full sm:order-none sm:w-auto"><Link to="/app" className="inline-flex rounded-lg px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-cyan-300">Devices</Link></nav>
+        <div className="flex items-center gap-3 sm:gap-5"><span className="hidden max-w-44 truncate text-sm text-slate-400 md:block" title={auth.user.email}>{auth.user.name}</span><Button onClick={signOut} disabled={pending} variant="secondary" className="min-h-9 px-4 text-sm">{pending ? 'Signing out…' : 'Sign out'}</Button></div>
+      </div>
+    </header>
+    {error && <div className="mx-auto max-w-6xl px-6 pt-6"><Alert>{error}</Alert></div>}
+    <Outlet />
   </div>
 }

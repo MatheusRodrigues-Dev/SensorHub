@@ -1,6 +1,8 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { authApi } from './api'
 import { ApiError } from '../types/api'
+import { onSessionExpired } from './sessionEvents'
+import { apiRequest } from './api'
 
 afterEach(() => { vi.unstubAllGlobals(); document.cookie = 'XSRF-TOKEN=; Max-Age=0' })
 
@@ -26,4 +28,13 @@ it('hides server details and reports network failure', async () => {
   await expect(authApi.currentUser()).rejects.toMatchObject({ status: 500, message: 'Something went wrong. Please try again.' })
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('ECONNREFUSED')))
   await expect(authApi.currentUser()).rejects.toBeInstanceOf(ApiError)
+})
+
+it('notifies authentication when a domain request returns 401', async () => {
+  const expired = vi.fn()
+  const unsubscribe = onSessionExpired(expired)
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({ message: 'Unauthenticated.' }) }))
+  await expect(apiRequest('/devices', 'GET', undefined, true)).rejects.toMatchObject({ status: 401 })
+  expect(expired).toHaveBeenCalledOnce()
+  unsubscribe()
 })

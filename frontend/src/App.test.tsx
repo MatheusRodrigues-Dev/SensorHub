@@ -3,8 +3,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import App from './App'
 import { authApi } from './lib/api'
 import { ApiError } from './types/api'
+import { devicesApi } from './features/devices/api'
 
 vi.mock('./lib/api', () => ({ authApi: { currentUser: vi.fn(), login: vi.fn(), register: vi.fn(), logout: vi.fn() } }))
+vi.mock('./features/devices/api', () => ({ devicesApi: { list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() } }))
 const user = { id: 1, name: 'Alex Sensor', email: 'alex@example.test' }
 const currentUser = vi.mocked(authApi.currentUser)
 const login = vi.mocked(authApi.login)
@@ -13,7 +15,7 @@ const logout = vi.mocked(authApi.logout)
 
 function visit(path: string) { window.history.replaceState({}, '', path); return render(<App />) }
 
-beforeEach(() => { vi.resetAllMocks(); currentUser.mockRejectedValue(new ApiError(401, 'Unauthenticated.')) })
+beforeEach(() => { vi.resetAllMocks(); currentUser.mockRejectedValue(new ApiError(401, 'Unauthenticated.')); vi.mocked(devicesApi.list).mockResolvedValue({ data: [], meta: { current_page: 1, per_page: 25, total: 0, last_page: 1 } }) })
 afterEach(cleanup)
 
 describe('SPA authentication', () => {
@@ -41,7 +43,7 @@ describe('SPA authentication', () => {
   it('restores the user and redirects authenticated visitors away from login', async () => {
     currentUser.mockResolvedValue(user)
     visit('/login')
-    expect(await screen.findByText('Welcome, Alex Sensor.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Devices' })).toBeInTheDocument()
     expect(window.location.pathname).toBe('/app')
   })
 
@@ -52,7 +54,7 @@ describe('SPA authentication', () => {
     fireEvent.change(await screen.findByLabelText('Email'), { target: { value: user.email } })
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } })
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
-    expect(await screen.findByText('Welcome, Alex Sensor.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Devices' })).toBeInTheDocument()
     expect(login).toHaveBeenCalledWith({ email: user.email, password: 'password123' })
   })
 
@@ -87,7 +89,7 @@ describe('SPA authentication', () => {
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } })
     fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'password123' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
-    expect(await screen.findByText('Welcome, Alex Sensor.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Devices' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
     await waitFor(() => expect(window.location.pathname).toBe('/login'))
     expect(logout).toHaveBeenCalledOnce()
