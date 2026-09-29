@@ -37,6 +37,7 @@ services:
       SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost,127.0.0.1}
     volumes:
       - ./backend:/var/www/html/backend
+      - ./.env:/var/www/html/backend/.env:ro
       - backend_vendor:/var/www/html/backend/vendor
       - backend_storage:/var/www/html/backend/storage
     depends_on:
@@ -79,11 +80,30 @@ services:
     networks:
       - sensorhub
 
+  mysql-testing:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: sensorhub_testing
+      MYSQL_USER: sensorhub_testing
+      MYSQL_PASSWORD: local-testing-only
+      MYSQL_ROOT_PASSWORD: local-testing-root-only
+    volumes:
+      - mysql_testing_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks:
+      - sensorhub
+
 volumes:
   backend_vendor:
   backend_storage:
   frontend_node_modules:
   mysql_data:
+  mysql_testing_data:
 
 networks:
   sensorhub:
