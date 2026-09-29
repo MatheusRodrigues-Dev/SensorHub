@@ -1,10 +1,11 @@
 # SensorHub
 
-SensorHub is a portfolio-oriented IoT telemetry platform planned around a
+SensorHub is a portfolio-oriented IoT telemetry platform built around a
 Laravel REST API, a React dashboard, and a Docker-first development workflow.
 
-The project is currently in the architecture and contract definition phase.
-The documented services and endpoints are planned and are not implemented yet.
+Docker infrastructure, the versioned API foundation, and the V1 persistence
+model are implemented. Domain API endpoints, authentication, telemetry ingestion
+and dashboard features remain planned.
 
 ## Planned stack
 
@@ -35,24 +36,27 @@ The documented services and endpoints are planned and are not implemented yet.
 - [Implementation roadmap](docs/roadmap.md)
 - [Docker development guide](docs/development.md)
 
-## Phase 1 quick start
+## Development quick start
 
 ```bash
 cp .env.example .env
 docker compose build
+docker compose run --rm backend php artisan key:generate --show
+# Paste the output into APP_KEY in the root .env.
 docker compose up -d
+docker compose exec backend php artisan migrate --force
 ```
 
 Open `http://localhost` after the containers are healthy. The complete
 Docker-based workflow, commands and environment variables are documented in
 the [development guide](docs/development.md).
 
-## Planned repository layout
+## Repository layout
 
 ```text
 backend/    Laravel API
 frontend/   React dashboard
-simulator/  IoT telemetry simulator
+simulator/  IoT telemetry simulator (planned)
 docker/     Nginx, PHP and MySQL images/configuration
 docs/       Architecture and API contracts
 compose.yaml

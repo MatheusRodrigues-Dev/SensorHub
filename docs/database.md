@@ -1,6 +1,6 @@
 # SensorHub V1 Database Model
 
-**Status:** Planned
+**Status:** Persistence implemented; API behavior planned
 
 ## Ownership graph
 
@@ -70,6 +70,8 @@ Represents one measurement channel on a device.
 | `deleted_at` | Soft-delete marker, nullable |
 
 The pair `device_id + key` is unique.
+`Sensor.key` is immutable through Eloquent. Its unique constraint continues to
+reserve the key after soft deletion.
 
 ### `measurements`
 
@@ -79,13 +81,19 @@ An immutable value recorded by a sensor.
 | --- | --- |
 | `id` | ULID primary key |
 | `sensor_id` | Parent sensor |
-| `value` | Decimal measurement value |
+| `value` | MySQL `DOUBLE` measurement value |
 | `unit` | Canonical unit copied from the sensor definition, nullable |
 | `measured_at` | Device measurement time in UTC |
 | `created_at` | Server receipt/persistence time in UTC |
 
 Measurements are append-only in V1. Corrections or deletion workflows are out
-of scope.
+of scope. Eloquent prevents updates and deletes; database writes must follow
+the same rule. Domain endpoints will be added in later phases.
+
+`value` uses `DOUBLE` because heterogeneous physical telemetry needs a broad
+numeric range without one arbitrary decimal scale. Exact decimal arithmetic is
+not a V1 requirement. Floating-point values must not be compared for exact
+equality; use a tolerance appropriate to the sensor and its uncertainty.
 
 ## Indexes and constraints
 
@@ -97,9 +105,23 @@ of scope.
 - Unique constraint on `sensors.device_id, sensors.key`.
 - Indexes on `device_credentials.device_id, revoked_at` and
   `device_credentials.expires_at` for credential validation.
-- Foreign keys use restrictive deletion for devices and sensors until an
-  explicit domain deletion policy is implemented.
+- Unique index on `device_credentials.token_hash` for credential lookup.
+- Foreign keys restrict physical deletion of a user with devices, a device
+  with credentials or sensors, and a sensor with measurements. Sensor soft
+  deletion retains its measurements and key reservation. A credential can be
+  physically deleted without affecting its parent device; revocation retains
+  history and is the intended lifecycle operation. An explicit domain deletion
+  policy remains a later decision.
 - All persisted timestamps use UTC; the API serializes them as ISO 8601.
+
+The four domain primary keys and their ULID foreign keys use `CHAR(26)` in
+MySQL. `devices.user_id` remains `BIGINT UNSIGNED` to match Laravel's `users.id`.
+Device and sensor `created_at`/`updated_at` columns follow Laravel's nullable
+`timestamps(6)` convention and are populated by Eloquent. Credential and
+measurement `created_at` columns are non-null `TIMESTAMP(6)` with a database
+default; those tables have no `updated_at` column. All domain time columns use
+microsecond precision, and Laravel's MySQL connection sets its session timezone
+to `+00:00`.
 
 ## Telemetry and timestamp rules
 
@@ -131,3 +153,8 @@ must be reassessed if telemetry volume becomes significant.
 Device credentials support create, rotate and revoke. A generated token is
 returned only in the creation or rotation response. The database stores only a
 cryptographic hash and lifecycle metadata needed for validation and auditing.
+The persisted hash is the lowercase SHA-256 hex digest of the complete,
+high-entropy bearer token. This deterministic digest permits indexed lookup.
+The token hash is hidden from ordinary Eloquent serialization and is not mass
+assignable. Future issuance must generate a cryptographically random token;
+short or user-chosen tokens would not be safe with this lookup strategy.

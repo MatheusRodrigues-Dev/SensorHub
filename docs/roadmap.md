@@ -45,7 +45,7 @@ command and the agreed application boundaries are established.
 ## Phase 3 — Database and domain
 
 - Add ULID-backed devices, credentials, sensors and measurements.
-- Add migrations, factories, seeders, policies, resources and validation.
+- Add migrations, models, factories and database integrity tests.
 - Add user ownership tests and the immutable sensor-key rules.
 
 **Done when:** the domain model and constraints are covered by automated tests.
@@ -53,6 +53,7 @@ command and the agreed application boundaries are established.
 ## Phase 4 — User authentication
 
 - Bootstrap Laravel 13 and Sanctum user authentication.
+- Add ownership policies before domain CRUD endpoints.
 - Implement registration, login, logout and current-user endpoints.
 
 **Done when:** users can authenticate through the documented SPA cookie flow.

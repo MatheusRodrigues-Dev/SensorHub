@@ -46,6 +46,9 @@ docker compose up -d
 # Install or update backend dependencies
 docker compose exec backend composer install
 docker compose exec backend composer update
+docker compose exec backend php artisan migrate --force
+# Destructive: clears all tables in the selected database.
+docker compose exec backend php artisan migrate:fresh --force
 
 # Run Laravel commands
 docker compose exec backend php artisan about
@@ -128,13 +131,21 @@ docker compose exec backend composer update
 ```
 
 The Laravel skeleton uses PHPUnit for Unit and Feature tests, plus the existing
-User factory. `phpunit.xml` forces `mysql-testing:3306/sensorhub_testing` with
+User factory. Domain factories provide valid Devices, Sensors, Measurements and
+DeviceCredentials. For example, a feature test can use
+`User::factory()->has(Device::factory())->create()`; attach a sensor with
+`Sensor::factory()->for($device)->create()`. Factories and migrations run in
+the test database through `RefreshDatabase`.
+
+`phpunit.xml` forces `mysql-testing:3306/sensorhub_testing` with
 a dedicated user. The `mysql-testing` service has its own volume and no
 published port; its credentials are local test fixtures. `tests/TestCase.php`
 rejects a connection configured for any other database. Tests never point
 at the development `sensorhub` database. Do not run test migrations against
 the development service. The database test service starts with `docker compose
 up -d` and may be checked with `docker compose ps mysql-testing`.
+It starts on ordinary Compose startup as well; a test-only startup profile can
+be considered later if its resource cost becomes inconvenient.
 
 The environment is reviewed around a same-origin Nginx entry point. `APP_URL`
 defaults to `http://localhost`; set it to the actual public origin when
@@ -146,7 +157,7 @@ the actual deployment proxy network rather than broadly enabled in local dev.
 
 ## Current scope
 
-This phase provides the Laravel and React skeletons plus Nginx, PHP-FPM, Vite
-and MySQL containers and the versioned Laravel API foundation. It does not implement authentication, domain API routes,
-devices, sensors, measurements, credentials, telemetry or dashboard behavior.
+The Laravel and React skeletons, the versioned API foundation, and the V1
+domain persistence model are implemented. Authentication, domain API routes,
+telemetry and dashboard behavior remain planned.
 Redis, queues, MQTT and real-time services remain planned.
