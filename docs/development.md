@@ -191,6 +191,15 @@ match. Duplicate sensor/timestamp pairs within a batch return `422`; repeated
 keys at different timestamps are accepted. ISO 8601 timestamps with explicit
 timezone offsets are normalized to UTC; V1 does not reject future timestamps.
 
+`GET /api/v1/sensors/{sensor}/measurements` uses the SPA session and
+Measurement ownership Policy. This route alone resolves soft-deleted Sensors
+so owners can read retained history; it never restores a Sensor. Optional
+`from` and `to` are inclusive ISO 8601 bounds on `measured_at`, normalized to
+UTC. Results use `measured_at ASC, id ASC`, matching the approved V1 order with
+a deterministic tie break. Pagination defaults to 25, with a maximum of 100.
+An owned Sensor with no matching rows returns an empty paginated `200`. Each
+Measurement returns its stored historical `unit` snapshot.
+
 Local HTTP uses `SESSION_SECURE_COOKIE=false`, an HTTP-only host-only
 `sensorhub_session` cookie, `SESSION_SAME_SITE=lax`, and the database session
 driver. `CORS_ALLOWED_ORIGINS` is an explicit allowlist; credentialed CORS is
@@ -206,6 +215,6 @@ production HTTPS deployment has been validated.
 The Laravel and React skeletons, versioned API foundation, V1 domain
 persistence, SPA user authentication, ownership policies, and Device/Sensor
 CRUD, credential lifecycle, device Bearer authentication, and atomic telemetry
-ingestion are implemented. Measurement query and dashboard behavior remain
-planned.
+ingestion, and read-only Measurement history queries are implemented.
+Dashboard behavior remains planned.
 Redis, queues, MQTT and real-time services remain planned.

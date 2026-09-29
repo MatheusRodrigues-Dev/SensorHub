@@ -142,6 +142,8 @@ change without changing the telemetry contract. The request field is named
 `Sensor.unit` is the source of truth. A telemetry reading may include an
 optional `unit` assertion, but a different value is rejected with `422`. The
 stored measurement unit is the sensor's canonical unit.
+Historical queries may read Measurements of a soft-deleted Sensor for its
+owner, without restoring it or making it eligible for new telemetry.
 
 Telemetry batches are atomic: the API authenticates the device, validates every
 reading and sensor, then inserts all measurements in one transaction. If one

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DeviceCredentialController;
+use App\Http\Controllers\Api\V1\MeasurementController;
 use App\Http\Controllers\Api\V1\SensorController;
 use App\Http\Controllers\Api\V1\TelemetryController;
 use App\Http\Middleware\AuthenticateDevice;
@@ -27,6 +28,7 @@ Route::middleware(['auth:web', RequireStatefulSpaSession::class])->group(functio
     Route::get('devices/{device}', [DeviceController::class, 'show']);
     Route::patch('devices/{device}', [DeviceController::class, 'update']);
     Route::delete('devices/{device}', [DeviceController::class, 'destroy']);
+    Route::get('sensors/{sensor}/measurements', [MeasurementController::class, 'index'])->withTrashed();
 
     Route::scopeBindings()->group(function (): void {
         Route::get('devices/{device}/sensors', [SensorController::class, 'index']);

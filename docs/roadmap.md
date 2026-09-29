@@ -1,6 +1,6 @@
 # SensorHub V1 Roadmap
 
-**Status:** Phases 0–6 implemented; later phases planned
+**Status:** Phases 0–7 implemented; later phases planned
 
 ## Phase 0 — Contracts and decisions
 
@@ -70,33 +70,43 @@ sensors.
 
 - Implement `DeviceCredential` create, rotate and revoke flows.
 - Implement device bearer-token middleware.
-- Implement atomic batch telemetry ingestion and measurement queries.
+- Implement atomic batch telemetry ingestion.
 - Validate every `sensor_key` and optional unit assertion before persistence.
 
-**Done when:** the simulator can submit readings and an authenticated client
-can retrieve them through `/api/v1`.
+**Done when:** a credentialed device can submit atomic measurements through
+`/api/v1`.
 
-## Phase 7 — React foundation
+## Phase 7 — Measurement query API
+
+- Expose read-only, owned Measurement history with inclusive date filters.
+- Preserve history access for owned soft-deleted Sensors.
+- Use bounded pagination and deterministic ascending event-time ordering.
+
+**Done when:** a user can query telemetry-created measurements without
+accessing another user's history.
+
+## Phase 8 — React foundation and SPA authentication
 
 - Create the TypeScript/Vite/Tailwind frontend structure.
-- Add frontend unit/component tests.
+- Add the Sanctum CSRF/session flow and frontend unit/component tests.
 
 **Done when:** the frontend can authenticate and consume typed API responses.
 
-## Phase 8 — Dashboard
+## Phase 9 — Device and Sensor management dashboard
 
 - Add login, device/sensor views, measurement history and loading/error states.
 
 **Done when:** the dashboard presents the complete V1 user workflow.
 
-## Phase 9 — Simulator
+## Phase 10 — Simulator and end-to-end polish
 
 - Create the simulator with configurable device credentials and interval.
+- Run full backend/frontend tests and reconcile documentation with behavior.
 
 **Done when:** `docker compose up` plus documented setup steps produces a
 repeatable end-to-end demo.
 
-## Phase 10 — Tests, CI and documentation review
+## Phase 11 — CI and documentation review
 
 - Run backend and frontend test suites in Docker.
 - Add CI checks for tests, formatting and OpenAPI validation.

@@ -1,6 +1,6 @@
 # SensorHub V1 API Guide
 
-**Status:** Authentication, Device/Sensor CRUD, credential lifecycle and telemetry ingestion implemented; measurement queries planned
+**Status:** Authentication, Device/Sensor CRUD, credential lifecycle, telemetry ingestion and Measurement history queries implemented
 **Base path:** `/api/v1`
 
 The authoritative machine-readable contract is [`openapi.yaml`](openapi.yaml).
@@ -64,7 +64,8 @@ revocation is idempotent. A token is shown only on creation or rotation.
 | `POST` | `/devices/{device}/telemetry` | Device | Ingest a batch |
 
 The four `/auth/*`, ten Device/Sensor, three credential-management, and telemetry
-routes above are implemented. Measurement query remains planned. Login is limited to ten attempts per minute per IP and
+routes above are implemented. Measurement history queries are implemented as
+read-only access. Login is limited to ten attempts per minute per IP and
 five per normalized email; excess requests receive `429`. Missing or invalid CSRF on a
 state-changing first-party request returns `419`.
 
@@ -144,4 +145,10 @@ Error bodies use a consistent shape:
 ```
 
 Measurement queries accept `from`, `to`, `per_page` and `page`. `from` and `to`
-are ISO 8601 timestamps and the default sort is ascending by `measured_at`.
+are ISO 8601 timestamps with explicit timezone offsets, normalized to UTC.
+Both limits are inclusive: `from <= measured_at <= to`. Results are ordered
+by `measured_at ASC, id ASC` for stable pagination, preserving the V1 ascending
+contract. The default page size is 25 and the maximum is 100. Owners may query
+history for soft-deleted Sensors through this read-only endpoint, while normal
+Sensor CRUD and telemetry continue to treat those Sensors as unavailable.
+Measurement `unit` comes from the value stored with each Measurement.
