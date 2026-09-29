@@ -176,6 +176,21 @@ Duplicate identifiers/keys and dependency-protected Device deletes yield
 `Sensor.key` is immutable; `Sensor.unit` changes only before the first
 Measurement. Measurement rows also retain the canonical unit snapshot.
 
+Credential management uses the same SPA session and Device ownership Policy.
+Creation returns a `sensorhub_` token with 256 random bits exactly once;
+rotation creates a new credential and revokes only the selected old one.
+Repeated revocation returns `204`. Multiple credentials may remain active for
+one Device. The database stores only SHA-256 digests. Device telemetry instead
+uses `Authorization: Bearer <device-token>` and needs no SPA cookie or CSRF
+header. A token is valid only for its owning Device and while non-revoked and
+non-expired. Successful ingestion updates `last_used_at` in the same MySQL
+transaction as its measurements; rejected batches leave it unchanged.
+Telemetry accepts 1–100 readings. Each `sensor_key` resolves within the
+authenticated Device and excludes soft-deleted sensors. Explicit units must
+match. Duplicate sensor/timestamp pairs within a batch return `422`; repeated
+keys at different timestamps are accepted. ISO 8601 timestamps with explicit
+timezone offsets are normalized to UTC; V1 does not reject future timestamps.
+
 Local HTTP uses `SESSION_SECURE_COOKIE=false`, an HTTP-only host-only
 `sensorhub_session` cookie, `SESSION_SAME_SITE=lax`, and the database session
 driver. `CORS_ALLOWED_ORIGINS` is an explicit allowlist; credentialed CORS is
@@ -190,6 +205,7 @@ production HTTPS deployment has been validated.
 
 The Laravel and React skeletons, versioned API foundation, V1 domain
 persistence, SPA user authentication, ownership policies, and Device/Sensor
-CRUD are implemented. Device bearer authentication, telemetry and dashboard
-behavior remain planned.
+CRUD, credential lifecycle, device Bearer authentication, and atomic telemetry
+ingestion are implemented. Measurement query and dashboard behavior remain
+planned.
 Redis, queues, MQTT and real-time services remain planned.

@@ -1,6 +1,6 @@
 # SensorHub V1 API Guide
 
-**Status:** User authentication and Device/Sensor CRUD implemented; remaining domain endpoints planned
+**Status:** Authentication, Device/Sensor CRUD, credential lifecycle and telemetry ingestion implemented; measurement queries planned
 **Base path:** `/api/v1`
 
 The authoritative machine-readable contract is [`openapi.yaml`](openapi.yaml).
@@ -34,6 +34,10 @@ Authorization: Bearer sensorhub_<plaintext-token>
 
 The token is generated, rotated or revoked through an authenticated user
 operation. It is never returned by read endpoints.
+Tokens contain 256 random bits encoded as 43 base64url characters after the
+`sensorhub_` prefix. Each Device may have several active credentials. Rotation
+creates a replacement credential and revokes only the selected old credential;
+revocation is idempotent. A token is shown only on creation or rotation.
 
 ## Endpoint catalogue
 
@@ -59,8 +63,8 @@ operation. It is never returned by read endpoints.
 | `GET` | `/sensors/{sensor}/measurements` | User | Query measurements |
 | `POST` | `/devices/{device}/telemetry` | Device | Ingest a batch |
 
-The four `/auth/*` and ten Device/Sensor routes above are implemented. The other
-catalogue entries remain planned. Login is limited to ten attempts per minute per IP and
+The four `/auth/*`, ten Device/Sensor, three credential-management, and telemetry
+routes above are implemented. Measurement query remains planned. Login is limited to ten attempts per minute per IP and
 five per normalized email; excess requests receive `429`. Missing or invalid CSRF on a
 state-changing first-party request returns `419`.
 
@@ -97,9 +101,16 @@ their keys reserved; V1 provides no restore operation.
 assertion only; if it differs from the sensor's configured unit, the entire
 request returns `422` and nothing is persisted.
 
-Telemetry batches are atomic. The API validates authentication, every sensor
-key and every unit assertion before opening one database transaction. Any
-failure rolls back the complete batch.
+Telemetry batches are atomic. The API authenticates the Device and validates
+the payload, then locks the credential and relevant Sensors in one database
+transaction. It validates every sensor key and unit before inserting any
+Measurement. Any failure rolls back the complete batch.
+Multiple readings for one sensor are accepted when their normalized timestamps
+are distinct. A repeated `(sensor_key, measured_at)` within one batch returns
+`422`. Unknown or soft-deleted sensor keys also return `422`. ISO 8601 timestamps
+with explicit timezone offsets are normalized to UTC. Future timestamps are
+accepted in V1. The credential's `last_used_at` advances only with a committed
+batch. Device Bearer requests have no SPA session or CSRF requirement.
 
 `measured_at` is the device-side event time. The measurement's `created_at` is
 the server receipt/persistence time, allowing delayed or offline telemetry to

@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: SensorHub API
   version: 1.0.0
-  description: V1 REST contract. User authentication and Device/Sensor CRUD are implemented; other domain endpoints remain planned.
+  description: V1 REST contract. Authentication, Device/Sensor CRUD, credential lifecycle and telemetry ingestion are implemented; measurement query endpoints remain planned.
   license:
     name: MIT
     identifier: MIT
@@ -284,6 +284,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
   /devices/{device}/credentials/{credential}/rotate:
     parameters:
       - $ref: '#/components/parameters/DeviceId'
@@ -295,13 +296,14 @@ paths:
       security: [{ sanctumCookie: [] }]
       responses:
         '201':
-          description: Credential rotated; plaintext token is returned once
+          description: Replacement credential created and selected old credential revoked; plaintext token is returned once
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DeviceTokenResponse' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
   /devices/{device}/credentials/{credential}:
     parameters:
       - $ref: '#/components/parameters/DeviceId'
@@ -312,7 +314,7 @@ paths:
       summary: Revoke a device credential
       security: [{ sanctumCookie: [] }]
       responses:
-        '204': { description: Credential revoked }
+        '204': { description: Credential revoked; repeated revocation is idempotent }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -345,6 +347,7 @@ paths:
       tags: [Telemetry]
       operationId: ingestTelemetry
       summary: Ingest a batch of device measurements
+      description: Bearer token must belong to the addressed Device. Readings persist atomically; repeated sensor keys require distinct normalized timestamps. Unknown or soft-deleted sensors and unit mismatches reject the entire batch.
       security: [{ deviceBearer: [] }]
       requestBody:
         required: true
@@ -471,9 +474,11 @@ components:
             credential: { $ref: '#/components/schemas/DeviceCredential' }
             token:
               type: string
-              description: Plaintext token. Returned only once at creation or rotation.
+              pattern: '^sensorhub_[A-Za-z0-9_-]{43}$'
+              description: Plaintext token with 256 random bits. Returned only once at creation or rotation.
     DeviceCredentialRequest:
       type: object
+      additionalProperties: false
       required: [name]
       properties:
         name: { type: string, minLength: 1, maxLength: 120 }
@@ -543,14 +548,16 @@ components:
         meta: { $ref: '#/components/schemas/PaginationMeta' }
     TelemetryReading:
       type: object
+      additionalProperties: false
       required: [sensor_key, value, measured_at]
       properties:
         sensor_key: { type: string, minLength: 1, maxLength: 80 }
-        value: { type: number }
+        value: { type: number, description: Finite double-precision physical measurement }
         unit: { type: [string, 'null'], maxLength: 20 }
         measured_at: { type: string, format: date-time }
     TelemetryRequest:
       type: object
+      additionalProperties: false
       required: [measurements]
       properties:
         measurements:

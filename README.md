@@ -5,8 +5,9 @@ Laravel REST API, a React dashboard, and a Docker-first development workflow.
 
 Docker infrastructure, the versioned API foundation, the V1 persistence model,
 and user SPA authentication with ownership policies are implemented. Device
-and Sensor CRUD endpoints are implemented; device authentication, telemetry ingestion and dashboard
-features remain planned.
+and Sensor CRUD endpoints, credential lifecycle, device Bearer authentication,
+and atomic telemetry ingestion are implemented. Measurement queries and
+dashboard features remain planned.
 
 ## Planned stack
 

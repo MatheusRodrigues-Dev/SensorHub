@@ -30,6 +30,11 @@ class DeviceCredential extends Model
         return hash('sha256', $token);
     }
 
+    public static function generateToken(): string
+    {
+        return 'sensorhub_'.rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+    }
+
     public function setPlaintextToken(string $token): void
     {
         $this->token_hash = self::hashToken($token);

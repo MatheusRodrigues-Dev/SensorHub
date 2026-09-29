@@ -53,6 +53,12 @@ Represents one device authentication credential and its lifecycle.
 
 Rotation creates a new credential and revokes the credential being rotated.
 Revocation is idempotent for an already revoked credential.
+Multiple credentials may remain active on one Device. Rotation affects only
+the selected credential; the replacement has a new ULID and copies its name.
+Tokens use `sensorhub_` followed by 43 base64url characters from 32 random
+bytes (256 bits of entropy). Only the complete token's SHA-256 digest is stored.
+`last_used_at` advances in the same transaction as a successfully persisted
+telemetry batch; rejected batches leave it unchanged.
 
 ### `sensors`
 
@@ -91,7 +97,8 @@ An immutable value recorded by a sensor.
 
 Measurements are append-only in V1. Corrections or deletion workflows are out
 of scope. Eloquent prevents updates and deletes; database writes must follow
-the same rule. Domain endpoints will be added in later phases.
+the same rule. Telemetry ingestion creates Measurements; the query endpoint
+remains planned.
 
 `value` uses `DOUBLE` because heterogeneous physical telemetry needs a broad
 numeric range without one arbitrary decimal scale. Exact decimal arithmetic is
