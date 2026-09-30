@@ -49,17 +49,17 @@ dependencies of the initial system.
 
 ## Backend shape
 
-Requests will flow through Laravel Form Requests, API controllers, Actions or
-Services, Eloquent models and API Resources:
+Requests flow through Laravel Form Requests, API controllers, focused Actions,
+Eloquent models and API Resources where each is appropriate:
 
 ```text
-Request -> Controller -> Action/Service -> Model -> Database
+Request -> Controller -> Action (when needed) -> Model -> Database
 Database -> Model -> API Resource -> JSON response
 ```
 
-Controllers should remain orchestration layers. Domain behavior belongs in
-Actions or Services, validation in Form Requests, authorization in Policies,
-and response serialization in API Resources.
+Controllers remain orchestration layers. Batch telemetry logic lives in an
+Action; validation uses Form Requests, authorization uses Policies, and response
+serialization uses API Resources.
 
 ## Authentication boundaries
 

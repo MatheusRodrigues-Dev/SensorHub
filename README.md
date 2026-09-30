@@ -1,142 +1,104 @@
 # SensorHub
 
+SensorHub is an independent IoT monitoring portfolio project: manage devices and sensors in a React dashboard, ingest synthetic telemetry through a secured Laravel API, and explore historical measurements.
+
 [![CI](https://github.com/MatheusRodrigues-Dev/SensorHub/actions/workflows/ci.yml/badge.svg)](https://github.com/MatheusRodrigues-Dev/SensorHub/actions/workflows/ci.yml)
 
-**A Docker-first IoT monitoring platform built with Laravel, React, TypeScript, MySQL and a reproducible device simulator.**
+![Temperature Sensor history showing synthetic measurements in a time-series chart and table](docs/screenshots/sensor-history.jpg)
 
-SensorHub is an independent portfolio project that demonstrates end-to-end IoT application engineering: secure user and device authentication, REST API design, relational persistence, atomic telemetry ingestion, a responsive React dashboard, automated tests and CI. All demo telemetry is synthetic.
+*Temperature history from the synthetic Home Environment Station. The chart shows the loaded page of raw measurements.*
 
-<!-- Portfolio screenshots to add before v1.0.0:
-docs/screenshots/sensor-history.jpg
-docs/screenshots/devices-dashboard.jpg
-docs/screenshots/device-detail.jpg
--->
+## What SensorHub demonstrates
 
-## What V1 demonstrates
-
-- **Two authentication boundaries:** Sanctum session + CSRF for people, independent Bearer credentials for IoT devices.
-- **IoT domain modeling:** users own Devices, Devices own Sensors and credentials, Sensors retain historical Measurements.
-- **Safe telemetry ingestion:** device-scoped sensor resolution, unit validation and atomic batch persistence.
-- **Full-stack product flow:** manage Devices and Sensors, inspect credential metadata, browse archived Sensors, filter Measurement history and visualize raw time-series data.
-- **Docker-first reproducibility:** Nginx, Laravel, React, MySQL, isolated test MySQL and the simulator run through Docker Compose.
-- **Engineering evidence:** backend, frontend and simulator tests, OpenAPI 3.1 documentation, formatting/linting and GitHub Actions CI.
+- Separate browser and IoT authentication: Sanctum sessions with CSRF for users; random, one-time device tokens stored as SHA-256 digests.
+- Ownership policies, MySQL constraints, atomic telemetry batches, and historical measurement queries.
+- A React dashboard with Device and Sensor management, archived history, credential metadata, pagination, and a chart of the current page of raw measurements.
+- An independent TypeScript simulator that sends **synthetic telemetry** through the public API.
+- Docker-first development and automated backend, frontend, simulator, and OpenAPI checks in GitHub Actions.
 
 ## V1 architecture
 
 ```mermaid
 flowchart LR
-    Browser["React dashboard<br/>TypeScript + Tailwind"]
-    Simulator["IoT simulator<br/>TypeScript / Node"]
-    Nginx["Nginx"]
-    API["Laravel 13 REST API"]
-    DB[("MySQL")]
-
-    Browser -->|"Sanctum session + CSRF"| Nginx
-    Simulator -->|"Bearer DeviceCredential"| Nginx
-    Nginx --> API
-    API --> DB
-    DB -->|"Measurement history"| API
-    API -->|"JSON API"| Browser
+    Browser["Browser · React / TypeScript / Tailwind"] -->|"REST · Sanctum session + CSRF"| Nginx
+    Simulator["IoT Simulator · TypeScript"] -->|"Bearer device token · telemetry"| Nginx
+    Nginx --> API["Laravel 13 · REST API"]
+    API --> Database[(MySQL)]
+    Database --> API
+    API -->|"Measurement history"| Nginx
 ```
 
-The simulator behaves like an external device and communicates only through the public telemetry API. Device tokens are generated from 32 random bytes; only their SHA-256 digests are persisted. The plaintext token is shown only when a credential is created or rotated.
+Docker Compose runs Nginx, the Laravel API, React development server, and MySQL. The simulator runs separately through an optional Compose profile. The browser reads measurements through the user API; the simulator writes them through the device API. See the [architecture guide](docs/architecture-v1.md) for details.
 
-## Core capabilities
+## Features and stack
 
-| Area | Implemented in V1 |
+| Area | Implemented V1 |
 | --- | --- |
-| Users | Registration, login, session restoration, logout and ownership policies |
-| Devices | CRUD, scoped ownership and dependency-aware deletion |
-| Sensors | CRUD, stable machine key, archived history and unit integrity |
-| Device credentials | Create, list metadata, rotate and revoke |
-| Telemetry | Bearer authentication, 1–100 reading batches, validation and transactional persistence |
-| Measurements | UTC timestamps, historical unit snapshots, date filtering, pagination and chart/table views |
-| Simulator | One-shot and continuous synthetic telemetry modes |
-| Quality | PHPUnit, Vitest, React Testing Library, simulator tests, Pint, frontend lint/build, OpenAPI lint and CI health checks |
+| API | Laravel 13, PHP 8.4, versioned REST API, OpenAPI 3.1 |
+| Persistence | MySQL, Eloquent, ULIDs, constraints, transactions |
+| Browser | React, TypeScript, Vite, Tailwind CSS 4, TanStack Query, Recharts |
+| Security | Sanctum SPA sessions, CSRF, ownership policies, device Bearer credentials |
+| Infrastructure | Docker Compose, Nginx, GitHub Actions |
 
-## Technology stack
+Users can register, manage Devices and Sensors, create/rotate/revoke device credentials, rediscover archived Sensors, and browse paginated Measurement history. Device tokens are shown only when issued or rotated. Soft-deleted Sensors keep their historical measurements but cannot receive new telemetry.
 
-| Layer | Technology |
-| --- | --- |
-| Backend | Laravel 13, PHP 8.4, Eloquent |
-| API | REST `/api/v1`, OpenAPI 3.1 |
-| Database | MySQL |
-| Frontend | React, TypeScript, Vite, Tailwind CSS 4 |
-| Server state | TanStack Query |
-| Visualization | Recharts |
-| Authentication | Laravel Sanctum + device Bearer credentials |
-| Infrastructure | Docker Compose, Nginx |
-| Testing | PHPUnit, Vitest, React Testing Library, Node test runner |
-| CI | GitHub Actions |
+## Product tour
+
+![Devices dashboard showing the synthetic Home Environment Station](docs/screenshots/devices-dashboard.jpg)
+
+![Home Environment Station detail showing Temperature, Humidity, Air Pressure, and safe credential metadata](docs/screenshots/device-detail.jpg)
+
+All screenshots show synthetic demonstration data. Credential tokens are not shown.
 
 ## Quick start
 
-Only **Git** and **Docker with Docker Compose** are required on the host.
+The host needs Git and Docker Compose; PHP, Composer, Node.js, and MySQL run in containers.
 
 ```bash
 git clone https://github.com/MatheusRodrigues-Dev/SensorHub.git
 cd SensorHub
 cp .env.example .env
+# Set local DB_PASSWORD and DB_ROOT_PASSWORD in .env.
 docker compose build
 docker compose run --rm backend php artisan key:generate --show
-# Paste the generated value into APP_KEY in .env
+# Paste the generated value into APP_KEY in .env.
 docker compose up -d
 docker compose exec backend php artisan migrate --force
 ```
 
-Open `http://localhost` after the containers are healthy. On Windows PowerShell, use `Copy-Item .env.example .env` instead of `cp`.
+Open [http://localhost](http://localhost) **after migrations complete**. On Windows PowerShell, use `Copy-Item .env.example .env` for the copy step. The [development guide](docs/development.md) covers setup, configuration, and troubleshooting.
 
-For the complete environment, test and troubleshooting workflow, see [docs/development.md](docs/development.md).
+## Try synthetic IoT telemetry
 
-## Try the IoT flow
-
-1. Register in the React dashboard.
-2. Create a Device and one or more Sensors.
-3. Create a Device credential and save the one-time token.
-4. Configure `SENSORHUB_DEVICE_ID`, `SENSORHUB_DEVICE_TOKEN` and `SENSORHUB_SENSORS` in the root `.env`.
-5. Send synthetic telemetry with the independent simulator:
+In the dashboard, create a Device and Sensor, then create a credential and save its one-time token. Set `SENSORHUB_DEVICE_ID`, `SENSORHUB_DEVICE_TOKEN`, and `SENSORHUB_SENSORS` in the ignored root `.env`, matching the Sensor's key and unit. Then run:
 
 ```bash
 docker compose --profile simulator build simulator
 docker compose --profile simulator run --rm simulator npm run once
 ```
 
-Open the Sensor history page to inspect the persisted reading in both the table and the chart. Use `npm run continuous` in the simulator container for periodic synthetic batches.
+Open that Sensor's history to see the synthetic reading in the table and chart. `npm run continuous` sends periodic batches until stopped. See [simulator configuration](simulator/.env.example) and the [development guide](docs/development.md). Never commit a device token.
 
-## Repository layout
+## Testing and documentation
 
-```text
-backend/    Laravel REST API and domain
-frontend/   React dashboard
-simulator/  Independent TypeScript synthetic telemetry client
-docker/     Nginx and PHP configuration
-docs/       Architecture, API, database and development documentation
-compose.yaml
+Backend, frontend, simulator, and OpenAPI validation run in [CI](https://github.com/MatheusRodrigues-Dev/SensorHub/actions/workflows/ci.yml). Local checks run through Docker:
+
+```bash
+docker compose exec backend php artisan test
+docker compose exec backend ./vendor/bin/pint --test
+docker compose exec frontend npm test
+docker compose exec frontend npm run lint
+docker compose exec frontend npm run build
+docker compose --profile simulator run --rm --no-deps simulator npm test
 ```
 
-## Quality gates
+- [Architecture and decisions](docs/architecture-v1.md) · [ADR](docs/adr/0001-modular-monolith-rest-api.md)
+- [API guide](docs/api.md) · [OpenAPI contract](docs/openapi.yaml)
+- [Database model](docs/database.md) · [Development guide](docs/development.md) · [Roadmap](docs/roadmap.md)
 
-GitHub Actions validates the project in Docker on every push and pull request:
+## Limits and future work
 
-- Laravel test suite and Pint formatting check;
-- frontend tests, lint and production build;
-- simulator build and tests;
-- OpenAPI 3.1 lint;
-- application and Laravel health endpoints.
-
-## Documentation
-
-- [V1 architecture](docs/architecture-v1.md)
-- [Architecture decision record](docs/adr/0001-modular-monolith-rest-api.md)
-- [Database model](docs/database.md)
-- [API guide](docs/api.md)
-- [OpenAPI 3.1 contract](docs/openapi.yaml)
-- [Docker development guide](docs/development.md)
-- [Roadmap and post-V1 considerations](docs/roadmap.md)
-
-## Scope and limitations
-
-V1 deliberately favors synchronous HTTP ingestion and a modular monolith. It does **not** claim production readiness, real-time streaming, MQTT support or measured scalability. Redis, queues, MQTT, aggregation, alerting and deployment remain post-V1 considerations to be justified by concrete requirements.
+The chart shows only the currently loaded page of raw measurements. The simulator produces synthetic values; this is a portfolio and learning project, not a production deployment or a source of real device data. MQTT, Redis, queues, aggregation, alerts, and real-time updates are post-V1 considerations, not implemented features.
 
 ## License
 
