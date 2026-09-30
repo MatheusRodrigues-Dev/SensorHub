@@ -8,7 +8,7 @@ info:
     identifier: MIT
 servers:
   - url: /api/v1
-    description: Planned API base path
+    description: Versioned API base path
 tags:
   - name: Authentication
     description: User registration and session management.
@@ -181,6 +181,12 @@ paths:
       tags: [Sensors]
       operationId: listDeviceSensors
       summary: List sensors for a device
+      description: Defaults to active sensors. Archived sensors are read-only and retain historical measurements.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [active, archived], default: active }
       security: [{ sanctumCookie: [] }]
       responses:
         '200':
@@ -191,6 +197,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
     post:
       tags: [Sensors]
       operationId: createSensor
@@ -264,6 +271,21 @@ paths:
   /devices/{device}/credentials:
     parameters:
       - $ref: '#/components/parameters/DeviceId'
+    get:
+      tags: [Devices]
+      operationId: listDeviceCredentials
+      summary: List credential metadata for an owned device
+      description: Never returns plaintext tokens or token digests.
+      security: [{ sanctumCookie: [] }]
+      responses:
+        '200':
+          description: Credential metadata collection, including revoked credentials
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceCredentialCollectionResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
     post:
       tags: [Devices]
       operationId: createDeviceCredential
@@ -495,6 +517,11 @@ components:
         expires_at: { type: [string, 'null'], format: date-time }
         revoked_at: { type: [string, 'null'], format: date-time }
         created_at: { type: string, format: date-time }
+    DeviceCredentialCollectionResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/DeviceCredential' } }
     SensorRequest:
       type: object
       additionalProperties: false

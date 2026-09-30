@@ -22,7 +22,7 @@ export function SensorPage() {
   const device = useQuery({ queryKey: queryKeys.device(deviceId), queryFn: () => devicesApi.get(deviceId) })
   const sensor = useQuery({ queryKey: queryKeys.sensor(deviceId, sensorId), queryFn: () => sensorsApi.get(deviceId, sensorId), enabled: device.isSuccess })
   const update = useMutation({ mutationFn: (input: SensorUpdate) => sensorsApi.update(deviceId, sensorId, input), onSuccess: async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: queryKeys.sensor(deviceId, sensorId) }), queryClient.invalidateQueries({ queryKey: queryKeys.sensors(deviceId) })]); setEditing(false) } })
-  const remove = useMutation({ mutationFn: () => sensorsApi.remove(deviceId, sensorId), onSuccess: async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: queryKeys.sensor(deviceId, sensorId) }), queryClient.invalidateQueries({ queryKey: queryKeys.sensors(deviceId) })]); setDeleting(false); navigate(`/app/sensors/${sensorId}/history`, { replace: true }) } })
+  const remove = useMutation({ mutationFn: () => sensorsApi.remove(deviceId, sensorId), onSuccess: async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: queryKeys.sensor(deviceId, sensorId) }), queryClient.invalidateQueries({ queryKey: queryKeys.sensorLists(deviceId) })]); setDeleting(false); navigate(`/app/sensors/${sensorId}/history`, { replace: true }) } })
   async function confirmDelete() {
     setDeleteError('')
     try { await remove.mutateAsync() }

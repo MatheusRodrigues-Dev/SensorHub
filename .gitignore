@@ -7,3 +7,5 @@ Thumbs.db
 
 frontend/node_modules/
 frontend/dist/
+simulator/node_modules/
+simulator/dist/

@@ -8,12 +8,20 @@ use App\Http\Resources\DeviceCredentialResource;
 use App\Models\Device;
 use App\Models\DeviceCredential;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class DeviceCredentialController extends Controller
 {
+    public function index(Device $device): AnonymousResourceCollection
+    {
+        Gate::authorize('viewAny', [DeviceCredential::class, $device]);
+
+        return DeviceCredentialResource::collection($device->credentials()->orderByDesc('created_at')->orderByDesc('id')->get());
+    }
+
     public function store(StoreDeviceCredentialRequest $request, Device $device): JsonResponse
     {
         Gate::authorize('create', [DeviceCredential::class, $device]);

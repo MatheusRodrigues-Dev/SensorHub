@@ -1,6 +1,6 @@
 # SensorHub Docker Development
 
-**Status:** Phases 0–9 implemented
+**Status:** V1 Phases 0–10 implemented
 
 Docker Compose is the official development environment. The host is expected
 to provide only Git and Docker with Docker Compose.
@@ -214,7 +214,7 @@ production HTTPS deployment has been validated.
 ## React SPA
 
 The frontend lives in `frontend/src`: `features/auth` owns the Context and
-hook; `features/devices`, `features/sensors`, and `features/measurements` own
+hook; `features/devices`, `features/sensors`, `features/credentials`, and `features/measurements` own
 domain API calls and screens; `lib/api.ts` is the single HTTP client; `pages`
 contains registration and login; `layouts` contains public and protected
 shells; and `components/ui` contains shared controls. React Router handles
@@ -237,7 +237,7 @@ after a successful registration. No bearer token or auth state is stored in
 browser storage. Session restoration always queries the backend after refresh.
 
 Auth Context remains responsible for the browser session. One TanStack
-QueryClient manages Device, Sensor and Measurement server state without cache
+QueryClient manages Device, Sensor, credential metadata and Measurement server state without cache
 persistence. `lib/queryKeys.ts` defines keys for paginated Device lists,
 Device details, per-Device Sensor lists, Sensor details, and Measurement
 histories by Sensor, date bounds, page and page size. Confirmed mutations
@@ -245,13 +245,13 @@ invalidate the affected list/details. Logout and domain API `401` clear the
 query cache before the next user can access it. The API remains authoritative;
 there are no optimistic domain updates.
 
-The Device dashboard exposes owned Devices and their active Sensors. Sensor
+The Device dashboard exposes owned Devices, their active and archived Sensors,
+and credential metadata. Sensor
 edit omits `key` from PATCH requests. A `409` when changing a unit after
 measurements exist is shown as a domain conflict. Soft deletion removes a
-Sensor from active lists and navigates to a read-only history route; this
-history remains accessible by its URL after refresh. There is no archived
-Sensor list in V1, so a user who leaves that URL cannot rediscover archived
-Sensors in the UI. This limitation does not affect authorized API access.
+Sensor from active lists and navigates to a read-only history route. The
+explicit Archived tab finds it again after refresh without enabling edits,
+telemetry, restoration or key reuse.
 
 Measurement filters use browser-local `datetime-local` controls and send
 timezone-aware UTC ISO strings. The table displays each Measurement's stored
@@ -260,10 +260,38 @@ the Recharts line chart shows only the currently loaded raw page, with no
 aggregation or implicit fetch of all history. Recharts loads on demand when
 the history view is opened.
 
-Credential management UI remains deferred. The approved API has create,
-rotate and revoke operations but no GET for existing credential metadata;
-therefore the UI could not reconstruct credential state after refresh. No
-endpoint was added in Phase 9.
+Credential metadata uses a dedicated query. The plaintext token returned by
+creation or rotation lives only in temporary component/mutation state, is
+shown once with a copy action, and is cleared when dismissed. It is never
+added to the query cache or browser storage. Revoked credentials remain in
+the metadata list.
+
+## IoT simulator
+
+The independent TypeScript simulator is in `simulator/`. Configure a Device
+and matching Sensor(s) in the React UI, create a credential, and save the
+one-time token. Set `SENSORHUB_DEVICE_ID`, `SENSORHUB_DEVICE_TOKEN`, and
+`SENSORHUB_SENSORS` in the root `.env` (or process environment). The sensor
+JSON is an array of `{ "key", "unit", "base", "amplitude" }` entries; keys and
+units must match existing Sensors. Values are bounded **synthetic telemetry**.
+`SENSORHUB_API_URL` defaults to the Nginx service's API URL inside Docker;
+`SENSORHUB_INTERVAL_SECONDS` defaults to 30. See `simulator/.env.example`.
+
+```bash
+docker compose --profile simulator build simulator
+docker compose --profile simulator run --rm simulator npm run once
+docker compose --profile simulator run --rm simulator npm run continuous
+docker compose --profile simulator run --rm --no-deps simulator npm test
+```
+
+The optional Compose profile keeps the simulator out of normal `up -d`.
+Stop continuous mode with Ctrl+C. The simulator uses only the public Bearer
+telemetry endpoint, never MySQL or Laravel internals. Rotate or revoke the
+credential to stop its old token; update the local secret to resume.
+GitHub Actions runs the backend, frontend, simulator and OpenAPI checks in
+Docker. A browser Playwright suite was deferred: the component tests and the
+manual Nginx end-to-end flow cover V1, while maintaining a browser runner
+would add setup without a distinct failure mode currently identified.
 
 Run `docker compose exec frontend npm test`, `npm run build`, and `npm run lint`
 through the frontend service. Tests use Vitest and React Testing Library. The
@@ -275,6 +303,6 @@ route remains supported.
 The Laravel API, V1 persistence, SPA authentication, ownership policies,
 Device/Sensor CRUD, credential lifecycle, device Bearer authentication,
 telemetry ingestion, and read-only Measurement history are implemented. The
-React SPA provides Device/Sensor screens and paginated Measurement charts.
-Credential management UI and simulator remain planned.
-Redis, queues, MQTT and real-time services remain planned.
+React SPA provides Device/Sensor/credential screens and paginated Measurement
+charts. The optional simulator sends synthetic telemetry through Nginx.
+Redis, queues, MQTT and real-time services remain post-V1 considerations.

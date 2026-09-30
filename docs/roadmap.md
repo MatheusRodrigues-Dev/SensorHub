@@ -1,6 +1,6 @@
 # SensorHub V1 Roadmap
 
-**Status:** Phases 0–9 implemented; later phases planned
+**Status:** V1 Phases 0–10 implemented; post-V1 work under consideration
 
 ## Phase 0 — Contracts and decisions
 
@@ -101,24 +101,16 @@ accessing another user's history.
 **Done when:** authenticated users can manage Devices/Sensors and inspect raw
 historical Measurements in the React application.
 
-## Phase 10 — Simulator and end-to-end polish
+## Phase 10 — Complete V1 and portfolio polish
 
+- Add safe credential metadata listing and archived Sensor discovery.
 - Create the simulator with configurable device credentials and interval.
-- Run full backend/frontend tests and reconcile documentation with behavior.
+- Add validation CI, run full tests and reconcile documentation with behavior.
 
 **Done when:** `docker compose up` plus documented setup steps produces a
 repeatable end-to-end demo.
 
-## Phase 11 — CI and documentation review
-
-- Run backend and frontend test suites in Docker.
-- Add CI checks for tests, formatting and OpenAPI validation.
-- Reconcile implementation behavior with all planned documents.
-
-**Done when:** the repository is reproducible and its implementation no longer
-contradicts the approved contracts.
-
-## Planned later — operational evolution
+## Post-V1 — under consideration
 
 The following remain explicitly deferred:
 

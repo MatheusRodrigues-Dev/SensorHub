@@ -10,17 +10,26 @@ use App\Models\Device;
 use App\Models\Sensor;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class SensorController extends Controller
 {
-    public function index(Device $device): AnonymousResourceCollection
+    public function index(Request $request, Device $device): AnonymousResourceCollection
     {
         Gate::authorize('viewAny', [Sensor::class, $device]);
+        $request->validate(['status' => ['sometimes', 'string', Rule::in(['active', 'archived'])]]);
+        $status = $request->query('status', 'active');
 
-        return SensorResource::collection($device->sensors()->orderBy('id')->get());
+        $sensors = $device->sensors();
+        if ($status === 'archived') {
+            $sensors->onlyTrashed();
+        }
+
+        return SensorResource::collection($sensors->orderBy('id')->get());
     }
 
     public function store(StoreSensorRequest $request, Device $device): JsonResponse

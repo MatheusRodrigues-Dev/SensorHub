@@ -77,6 +77,33 @@ class DeviceTelemetryTest extends TestCase
         $this->send($device, [$this->reading()], $rotated['token'])->assertUnauthorized();
     }
 
+    public function test_credential_listing_contains_only_safe_metadata(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $device = Device::factory()->for($owner)->create();
+        $foreign = Device::factory()->for($other)->create();
+        $token = DeviceCredential::generateToken();
+        $credential = DeviceCredential::factory()->for($device)->make(['name' => 'Simulator']);
+        $credential->setPlaintextToken($token);
+        $credential->save();
+        $revoked = DeviceCredential::factory()->for($device)->create(['revoked_at' => now('UTC')]);
+        DeviceCredential::factory()->for($foreign)->create();
+
+        $this->getJson("/api/v1/devices/{$device->id}/credentials")->assertUnauthorized();
+        $this->actingAs($owner, 'web')->withHeader('Origin', 'http://localhost');
+        $this->getJson("/api/v1/devices/{$foreign->id}/credentials")->assertForbidden();
+        $response = $this->getJson("/api/v1/devices/{$device->id}/credentials")
+            ->assertOk()->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['id' => $credential->id, 'name' => 'Simulator'])
+            ->assertJsonFragment(['id' => $revoked->id]);
+        $response->assertDontSee($token)->assertDontSee(DeviceCredential::hashToken($token));
+        foreach ($response->json('data') as $item) {
+            $this->assertArrayNotHasKey('token', $item);
+            $this->assertArrayNotHasKey('token_hash', $item);
+        }
+    }
+
     public function test_device_bearer_authentication_and_atomic_telemetry(): void
     {
         $device = Device::factory()->create();

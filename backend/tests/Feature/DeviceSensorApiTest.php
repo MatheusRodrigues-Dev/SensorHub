@@ -103,4 +103,30 @@ class DeviceSensorApiTest extends TestCase
         $this->getJson("/api/v1/devices/{$device->id}/sensors")->assertJsonCount(0, 'data');
         $this->postJson("/api/v1/devices/{$device->id}/sensors", $payload)->assertStatus(409);
     }
+
+    public function test_archived_sensor_filter_is_owned_and_does_not_change_normal_routes(): void
+    {
+        $owner = User::factory()->create();
+        $other = User::factory()->create();
+        $device = Device::factory()->for($owner)->create();
+        $foreign = Device::factory()->for($other)->create();
+        $active = Sensor::factory()->for($device)->create();
+        $archived = Sensor::factory()->for($device)->create();
+        $foreignArchived = Sensor::factory()->for($foreign)->create();
+        $archived->delete();
+        $foreignArchived->delete();
+        $this->asUser($owner);
+
+        $this->getJson("/api/v1/devices/{$device->id}/sensors")
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $active->id);
+        $this->getJson("/api/v1/devices/{$device->id}/sensors?status=active")
+            ->assertOk()->assertJsonCount(1, 'data');
+        $this->getJson("/api/v1/devices/{$device->id}/sensors?status=archived")
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $archived->id)
+            ->assertDontSee($foreignArchived->id);
+        $this->getJson("/api/v1/devices/{$device->id}/sensors?status=invalid")
+            ->assertUnprocessable()->assertJsonValidationErrors('status');
+        $this->getJson("/api/v1/devices/{$foreign->id}/sensors?status=archived")->assertForbidden();
+        $this->getJson("/api/v1/devices/{$device->id}/sensors/{$archived->id}")->assertNotFound();
+    }
 }

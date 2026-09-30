@@ -103,6 +103,23 @@ services:
     networks:
       - sensorhub
 
+  simulator:
+    profiles: [simulator]
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    environment:
+      SENSORHUB_API_URL: ${SENSORHUB_API_URL:-http://nginx/api/v1}
+      SENSORHUB_DEVICE_ID: ${SENSORHUB_DEVICE_ID:-}
+      SENSORHUB_DEVICE_TOKEN: ${SENSORHUB_DEVICE_TOKEN:-}
+      SENSORHUB_SENSORS: ${SENSORHUB_SENSORS:-[]}
+      SENSORHUB_INTERVAL_SECONDS: ${SENSORHUB_INTERVAL_SECONDS:-30}
+    depends_on:
+      nginx:
+        condition: service_started
+    networks:
+      - sensorhub
+
 volumes:
   backend_vendor:
   backend_storage:

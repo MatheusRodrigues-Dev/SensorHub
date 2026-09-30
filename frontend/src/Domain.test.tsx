@@ -6,23 +6,27 @@ import { notifySessionExpired } from './lib/sessionEvents'
 import { devicesApi } from './features/devices/api'
 import { sensorsApi } from './features/sensors/api'
 import { measurementsApi } from './features/measurements/api'
+import { credentialsApi } from './features/credentials/api'
 import { ApiError } from './types/api'
-import type { Device, Measurement, Sensor } from './types/domain'
+import type { Device, DeviceCredential, Measurement, Sensor } from './types/domain'
 
 vi.mock('./lib/api', () => ({ authApi: { currentUser: vi.fn(), login: vi.fn(), register: vi.fn(), logout: vi.fn() } }))
 vi.mock('./features/devices/api', () => ({ devicesApi: { list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() } }))
 vi.mock('./features/sensors/api', () => ({ sensorsApi: { list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() } }))
 vi.mock('./features/measurements/api', () => ({ measurementsApi: { list: vi.fn() } }))
+vi.mock('./features/credentials/api', () => ({ credentialsApi: { list: vi.fn(), create: vi.fn(), rotate: vi.fn(), revoke: vi.fn() } }))
 vi.mock('./features/measurements/MeasurementChart', () => ({ MeasurementChart: ({ measurements }: { measurements: Measurement[] }) => <div data-testid="measurement-chart">{measurements.map(item => item.value).join(',')}</div> }))
 
 const device: Device = { id: '01K6C8R07QJ2J8XZ6HVQ9EX001', name: 'Lab device', identifier: 'lab-01', created_at: '2026-09-29T12:00:00Z', updated_at: '2026-09-29T12:00:00Z' }
 const sensor: Sensor = { id: '01K6C8R07QJ2J8XZ6HVQ9EX002', device_id: device.id, name: 'Temperature', key: 'temperature', type: 'temperature', unit: '°C' }
 const measurement: Measurement = { id: '01K6C8R07QJ2J8XZ6HVQ9EX003', sensor_id: sensor.id, value: 24.8, unit: '°C', measured_at: '2026-09-29T12:30:00Z', created_at: '2026-09-29T12:31:00Z' }
+const credential: DeviceCredential = { id: '01K6C8R07QJ2J8XZ6HVQ9EX004', device_id: device.id, name: 'Simulator', created_at: '2026-09-29T12:00:00Z', last_used_at: null, expires_at: null, revoked_at: null }
 const meta = { current_page: 1, per_page: 25, total: 1, last_page: 1 }
 const mocked = {
   listDevices: vi.mocked(devicesApi.list), getDevice: vi.mocked(devicesApi.get), createDevice: vi.mocked(devicesApi.create), updateDevice: vi.mocked(devicesApi.update), removeDevice: vi.mocked(devicesApi.remove),
   listSensors: vi.mocked(sensorsApi.list), getSensor: vi.mocked(sensorsApi.get), createSensor: vi.mocked(sensorsApi.create), updateSensor: vi.mocked(sensorsApi.update), removeSensor: vi.mocked(sensorsApi.remove),
   listMeasurements: vi.mocked(measurementsApi.list),
+  listCredentials: vi.mocked(credentialsApi.list), createCredential: vi.mocked(credentialsApi.create), rotateCredential: vi.mocked(credentialsApi.rotate), revokeCredential: vi.mocked(credentialsApi.revoke),
 }
 function visit(path: string) { window.history.replaceState({}, '', path); return render(<App />) }
 
@@ -40,6 +44,10 @@ beforeEach(() => {
   mocked.createSensor.mockResolvedValue(sensor)
   mocked.updateSensor.mockResolvedValue(sensor)
   mocked.removeSensor.mockResolvedValue()
+  mocked.listCredentials.mockResolvedValue([credential])
+  mocked.createCredential.mockResolvedValue({ credential, token: `sensorhub_${'A'.repeat(43)}` })
+  mocked.rotateCredential.mockResolvedValue({ credential: { ...credential, id: '01K6C8R07QJ2J8XZ6HVQ9EX005' }, token: `sensorhub_${'B'.repeat(43)}` })
+  mocked.revokeCredential.mockResolvedValue()
 })
 afterEach(cleanup)
 
@@ -230,5 +238,42 @@ describe('Session and routing', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
     expect(await screen.findByText('No devices yet')).toBeInTheDocument()
     expect(mocked.listDevices).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('Credential management and archived sensors', () => {
+  it('lists metadata, creates a token once, and dismisses the plaintext', async () => {
+    visit(`/app/devices/${device.id}`)
+    expect(await screen.findByText('Simulator')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Credential name'), { target: { value: 'Production' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create credential' }))
+    await waitFor(() => expect(mocked.createCredential).toHaveBeenCalledWith(device.id, 'Production'))
+    expect(await screen.findByText(`sensorhub_${'A'.repeat(43)}`)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'I saved it' }))
+    expect(screen.queryByText(`sensorhub_${'A'.repeat(43)}`)).not.toBeInTheDocument()
+    expect(mocked.listCredentials).toHaveBeenCalled()
+  })
+
+  it('rotates and revokes the selected credential with confirmation', async () => {
+    visit(`/app/devices/${device.id}`)
+    fireEvent.click(await screen.findByRole('button', { name: 'Rotate' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Rotate credential' }))
+    await waitFor(() => expect(mocked.rotateCredential).toHaveBeenCalledWith(device.id, credential.id))
+    expect(await screen.findByText(`sensorhub_${'B'.repeat(43)}`)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'I saved it' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke credential' }))
+    await waitFor(() => expect(mocked.revokeCredential).toHaveBeenCalledWith(device.id, credential.id))
+  })
+
+  it('shows archived sensors separately and links only to read-only history', async () => {
+    const archived = { ...sensor, id: '01K6C8R07QJ2J8XZ6HVQ9EX006', name: 'Old temperature' }
+    mocked.listSensors.mockImplementation(async (_deviceId, status) => status === 'archived' ? [archived] : [sensor])
+    visit(`/app/devices/${device.id}`)
+    expect(await screen.findByRole('link', { name: sensor.name })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Archived' }))
+    expect(await screen.findByRole('link', { name: archived.name })).toHaveAttribute('href', `/app/sensors/${archived.id}/history`)
+    expect(screen.queryByRole('button', { name: 'Edit sensor' })).not.toBeInTheDocument()
+    expect(mocked.listSensors).toHaveBeenCalledWith(device.id, 'archived')
   })
 })

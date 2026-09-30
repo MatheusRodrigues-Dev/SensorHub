@@ -1,6 +1,6 @@
 # SensorHub V1 Database Model
 
-**Status:** Persistence implemented; API behavior planned
+**Status:** V1 persistence and related API behavior implemented
 
 ## Ownership graph
 

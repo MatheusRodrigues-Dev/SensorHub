@@ -1,0 +1,15 @@
+{
+  "name": "sensorhub-simulator",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/*.test.js",
+    "once": "node dist/index.js --once",
+    "continuous": "node dist/index.js --continuous"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -24,6 +24,16 @@ export interface Measurement {
   measured_at: string
   created_at: string
 }
+export interface DeviceCredential {
+  id: string
+  device_id: string
+  name: string
+  created_at: string
+  last_used_at: string | null
+  expires_at: string | null
+  revoked_at: string | null
+}
+export interface IssuedDeviceCredential { credential: DeviceCredential; token: string }
 export interface PaginationMeta { current_page: number; per_page: number; total: number; last_page: number }
 export interface Page<T> { data: T[]; meta: PaginationMeta }
 export interface MeasurementFilters { from?: string; to?: string; page: number; perPage: number }

@@ -37,6 +37,7 @@ Route::middleware(['auth:web', RequireStatefulSpaSession::class])->group(functio
         Route::patch('devices/{device}/sensors/{sensor}', [SensorController::class, 'update']);
         Route::delete('devices/{device}/sensors/{sensor}', [SensorController::class, 'destroy']);
         Route::post('devices/{device}/credentials', [DeviceCredentialController::class, 'store']);
+        Route::get('devices/{device}/credentials', [DeviceCredentialController::class, 'index']);
         Route::post('devices/{device}/credentials/{credential}/rotate', [DeviceCredentialController::class, 'rotate']);
         Route::delete('devices/{device}/credentials/{credential}', [DeviceCredentialController::class, 'destroy']);
     });

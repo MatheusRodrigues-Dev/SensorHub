@@ -1,6 +1,6 @@
 # ADR 0001: Use a Modular Monolith with a Versioned REST API
 
-- **Status:** Accepted — Planned for implementation
+- **Status:** Accepted — Implemented in V1
 - **Date:** 2026-09-29
 
 ## Context

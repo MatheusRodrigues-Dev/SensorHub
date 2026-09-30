@@ -1,8 +1,9 @@
 # SensorHub React SPA
 
 The React app provides registration, login, session restoration, Device and
-Sensor management, paginated Measurement history, a current-page chart, and
-logout. Device credential UI and the simulator are planned.
+Sensor management (including archived history), credential management,
+paginated Measurement history, a current-page chart, and logout. The optional
+Docker simulator is in `simulator/`.
 
 Run through Docker from the repository root:
 

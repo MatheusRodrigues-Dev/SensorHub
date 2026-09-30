@@ -1,18 +1,17 @@
 # SensorHub V1 Architecture
 
-**Status:** Planned
+**Status:** Implemented V1 topology; post-V1 components remain under consideration
 
 ## Summary
 
-SensorHub will be a lightweight modular monolith: one Laravel application will
-own the domain, authentication, REST API and persistence, while the React
-dashboard and IoT simulator will remain separate clients in the same
-repository.
+SensorHub is a lightweight modular monolith: one Laravel application owns the
+domain, authentication, REST API and persistence. The React dashboard and
+optional simulator are separate API clients in the same repository.
 
 ```text
-IoT device / simulator ──HTTPS──┐
-                                ├──> Laravel REST API ──> MySQL
-React SPA ─────────────JSON─────┘
+Browser → Nginx → React SPA ── session/CSRF ──→ Laravel REST API → MySQL
+Simulator ── Bearer DeviceCredential ──→ Nginx → Laravel telemetry API → MySQL
+MySQL → Measurement history API → React table and chart
 ```
 
 ## Principles
@@ -39,11 +38,11 @@ dependencies of the initial system.
 
 | Component | Responsibility | V1 status |
 | --- | --- | --- |
-| `nginx` | HTTP entrypoint and routing to API/frontend services | Planned |
-| `api` | Laravel REST API, authentication, validation, domain actions and resources | Planned |
-| `frontend` | React dashboard consuming JSON over HTTP | Planned |
-| `mysql` | Durable application and telemetry data | Planned |
-| `simulator` | Reproducible device telemetry producer for demos | Planned |
+| `nginx` | HTTP entrypoint and routing to API/frontend services | Implemented |
+| `api` | Laravel REST API, authentication, validation, domain actions and resources | Implemented |
+| `frontend` | React dashboard consuming JSON over HTTP | Implemented |
+| `mysql` | Durable application and telemetry data | Implemented |
+| `simulator` | Reproducible synthetic telemetry producer for demos | Implemented, optional Compose profile |
 | `redis` | Cache, queues or rate-limit backing store | Planned later |
 | `queue-worker` | Asynchronous processing | Planned later |
 | `mqtt-broker` | MQTT ingestion for constrained devices | Planned later |

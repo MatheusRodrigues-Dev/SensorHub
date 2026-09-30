@@ -52,18 +52,19 @@ revocation is idempotent. A token is shown only on creation or rotation.
 | `GET` | `/devices/{device}` | User | Show an owned device |
 | `PATCH` | `/devices/{device}` | User | Update an owned device |
 | `DELETE` | `/devices/{device}` | User | Remove an owned device |
-| `GET` | `/devices/{device}/sensors` | User | List device sensors |
+| `GET` | `/devices/{device}/sensors` | User | List active sensors by default; `status=archived` lists retained soft-deleted sensors |
 | `POST` | `/devices/{device}/sensors` | User | Create a sensor |
 | `GET` | `/devices/{device}/sensors/{sensor}` | User | Show a sensor |
 | `PATCH` | `/devices/{device}/sensors/{sensor}` | User | Update a sensor |
 | `DELETE` | `/devices/{device}/sensors/{sensor}` | User | Remove a sensor |
 | `POST` | `/devices/{device}/credentials` | User | Create a named device token |
+| `GET` | `/devices/{device}/credentials` | User | List metadata, including revoked credentials; never returns secrets |
 | `POST` | `/devices/{device}/credentials/{credential}/rotate` | User | Rotate a token |
 | `DELETE` | `/devices/{device}/credentials/{credential}` | User | Revoke a token |
 | `GET` | `/sensors/{sensor}/measurements` | User | Query measurements |
 | `POST` | `/devices/{device}/telemetry` | Device | Ingest a batch |
 
-The four `/auth/*`, ten Device/Sensor, three credential-management, and telemetry
+The four `/auth/*`, ten Device/Sensor, four credential-management, and telemetry
 routes above are implemented. Measurement history queries are implemented as
 read-only access. Login is limited to ten attempts per minute per IP and
 five per normalized email; excess requests receive `429`. Missing or invalid CSRF on a
@@ -97,6 +98,13 @@ every key before writing the batch.
 `Sensor.unit` may change only before the first measurement. A later unit
 change returns `409`. Deleted sensors stay hidden from normal routes and keep
 their keys reserved; V1 provides no restore operation.
+The Sensor list accepts `status=active` (default) or `status=archived`.
+Archived Sensors are returned only in that explicit list, remain read-only,
+and link to the existing owner-only Measurement history endpoint.
+
+Credential listing returns the existing metadata fields (`id`, `device_id`,
+`name`, `created_at`, `last_used_at`, `expires_at`, `revoked_at`) without tokens
+or digests. Create and rotate responses alone show plaintext once.
 
 `Sensor.unit` is the source of truth. The optional telemetry `unit` is an
 assertion only; if it differs from the sensor's configured unit, the entire
