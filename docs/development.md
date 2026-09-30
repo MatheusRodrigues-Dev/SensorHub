@@ -21,7 +21,10 @@ docker compose build
 docker compose run --rm backend php artisan key:generate --show
 # Paste the generated value into APP_KEY in the root .env.
 docker compose up -d
+docker compose exec backend php artisan migrate --force
 ```
+
+Only open the application after the migration completes successfully.
 
 On Windows PowerShell, use `Copy-Item .env.example .env` for the copy step.
 
@@ -86,15 +89,14 @@ required names without committing secrets.
 
 The backend receives its database connection through the Compose service name
 `mysql` on port `3306`, not `localhost`. `DB_FORWARD_PORT` (default `3307`)
-publishes MySQL only for optional host tools; Laravel never uses it. Frontend requests use the Nginx origin so the future
-Sanctum cookie and CSRF configuration can be kept first-party.
+publishes MySQL only for optional host tools; Laravel never uses it. Frontend requests use the Nginx origin so Sanctum cookie and CSRF configuration remain first-party.
 
 ## Backend foundation
 
 `backend/routes/api.php` is mounted at `/api/v1` through `bootstrap/app.php`.
 `GET /api/v1/health` is an infrastructure probe; it is outside the planned
 SensorHub domain API contract. The existing `/up` route remains Laravel's
-framework health check. Future endpoint code should use controllers under
+framework health check. API endpoint code uses controllers under
 `app/Http/Controllers/Api/V1`, Form Requests under `app/Http/Requests/Api/V1`,
 Laravel API Resources under `app/Http/Resources`, and focused actions under
 `app/Actions` where they simplify a real use case. Create directories and
@@ -113,7 +115,7 @@ adds Laravel's `links` and `meta`. Creation uses `201`, updates `200`, and
 deletion `204` with no body. Errors use Laravel's `{"message": "..."}`;
 validation adds `errors` keyed by field. Authentication failures use `401`,
 authorization failures `403`, missing resources `404`, conflicts `409`,
-invalid input `422`, and unexpected errors `500`. The planned contract is in
+invalid input `422`, and unexpected errors `500`. The contract is in
 `docs/openapi.yaml`.
 
 ## Backend commands
